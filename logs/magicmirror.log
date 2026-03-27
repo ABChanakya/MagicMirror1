@@ -1,0 +1,70 @@
+
+> magicmirror@2.34.0 start
+> node --run start:x11
+
+[2026-03-27 12:35:27.539] [LOG]   [app] Starting MagicMirror: v2.34.0 
+[2026-03-27 12:35:27.540] [LOG]   [app] Loading config ... 
+[2026-03-27 12:35:27.541] [LOG]   [app] config template file not exists, no envsubst 
+[2026-03-27 12:35:27.597] [INFO]  [check_config] Checking config file /home/bhaskara/Desktop/Magicmirror3/MagicMirror/config/config.js ... 
+[2026-03-27 12:35:27.613] [INFO]  [check_config] Your configuration file doesn't contain syntax errors :) 
+[2026-03-27 12:35:27.613] [INFO]  [check_config] Checking modules structure configuration ... 
+[2026-03-27 12:35:27.625] [INFO]  [check_config] Your modules structure configuration doesn't contain errors :) 
+[2026-03-27 12:35:27.625] [LOG]   [app] Loading module helpers ... 
+[2026-03-27 12:35:27.625] [LOG]   [app] No helper found for module: alert. 
+[2026-03-27 12:35:27.626] [LOG]   [node_helper] Initializing new module helper ... 
+[2026-03-27 12:35:27.626] [LOG]   [node_helper] Module helper loaded: MMM-CameraBridge 
+[2026-03-27 12:35:27.634] [LOG]   [node_helper] Initializing new module helper ... 
+[2026-03-27 12:35:27.634] [LOG]   [node_helper] Module helper loaded: MMM-Remote-Control 
+[2026-03-27 12:35:27.634] [LOG]   [app] No helper found for module: MMM-page-indicator. 
+[2026-03-27 12:35:27.634] [LOG]   [app] No helper found for module: MMM-pages. 
+[2026-03-27 12:35:27.634] [LOG]   [app] No helper found for module: clock. 
+[2026-03-27 12:35:27.634] [LOG]   [app] No helper found for module: weather. 
+[2026-03-27 12:35:27.634] [LOG]   [app] No helper found for module: MMM-ClothingAdvice. 
+[2026-03-27 12:35:27.644] [LOG]   [node_helper] Initializing new module helper ... 
+[2026-03-27 12:35:27.644] [LOG]   [node_helper] Module helper loaded: calendar 
+[2026-03-27 12:35:27.644] [LOG]   [app] No helper found for module: compliments. 
+[2026-03-27 12:35:27.644] [LOG]   [app] No helper found for module: MMM-DailyPokemon. 
+[2026-03-27 12:35:27.644] [LOG]   [app] No helper found for module: MMM-Facts. 
+[2026-03-27 12:35:27.644] [LOG]   [node_helper] Initializing new module helper ... 
+[2026-03-27 12:35:27.644] [LOG]   [node_helper] Module helper loaded: MMM-OnThisDay 
+[2026-03-27 12:35:27.644] [LOG]   [node_helper] Initializing new module helper ... 
+[2026-03-27 12:35:27.645] [LOG]   [node_helper] Module helper loaded: MMM-Quiz 
+[2026-03-27 12:35:27.653] [LOG]   [node_helper] Initializing new module helper ... 
+[2026-03-27 12:35:27.653] [LOG]   [node_helper] Module helper loaded: newsfeed 
+[2026-03-27 12:35:27.659] [LOG]   [node_helper] Initializing new module helper ... 
+[2026-03-27 12:35:27.659] [LOG]   [node_helper] Module helper loaded: MMM-NINA 
+[2026-03-27 12:35:27.659] [LOG]   [app] All module helpers loaded. 
+[2026-03-27 12:35:27.660] [LOG]   [server] Starting server on port 8080 ...  
+[2026-03-27 12:35:27.706] [ERROR] [server] 
+────────────────────────────────────────────────────────────────
+ PORT IN USE: localhost:8080
+
+ Another process (most likely another MagicMirror instance)
+ is already using this port.
+
+ Stop the other process (free the port) or use a different port.
+──────────────────────────────────────────────────────────────── 
+[2026-03-27 12:35:27.932] [INFO]  [utils] 
+####  System Information  ####
+- SYSTEM:   manufacturer: ASUS; model: System Product Name; virtual: false; MM: 2.34.0
+- OS:       platform: linux; distro: Ubuntu; release: 24.04.4 LTS; arch: x64; kernel: 6.17.0-14-generic
+- VERSIONS: electron: 39.2.7; used node: 22.21.1; installed node: 24.14.0; npm: 11.9.0; pm2: 6.0.14
+- ENV:      XDG_SESSION_TYPE: x11; MM_CONFIG_FILE: undefined
+            WAYLAND_DISPLAY:  undefined; DISPLAY: :2; ELECTRON_ENABLE_GPU: undefined
+- RAM:      total: 128616.57 MB; free: 118113.06 MB; used: 10503.51 MB
+- OTHERS:   uptime: 34654 minutes; timeZone: Europe/Berlin 
+[2026-03-27 14:52:03.311] [LOG]   [electron] Shutting down server... 
+[2026-03-27 14:52:03.311] [ERROR] [app] Error when stopping node_helper for module MMM-Remote-Control: 
+[2026-03-27 14:52:03.312] [ERROR] [app] TypeError: Cannot convert undefined or null to object
+    at Object.keys (<anonymous>)
+    at Class.stop (/home/bhaskara/Desktop/Magicmirror3/MagicMirror/modules/MMM-Remote-Control/node_helper.js:116:28)
+    at App.stop (/home/bhaskara/Desktop/Magicmirror3/MagicMirror/js/app.js:363:35)
+    at EventEmitter.<anonymous> (/home/bhaskara/Desktop/Magicmirror3/MagicMirror/js/electron.js:204:13)
+    at EventEmitter.emit (node:events:519:28) 
+[2026-03-27 14:52:03.312] [LOG]   [node_helper] Stopping module helper: calendar 
+[2026-03-27 14:52:03.312] [LOG]   [node_helper] Stopping module helper: MMM-OnThisDay 
+[2026-03-27 14:52:03.312] [LOG]   [node_helper] Stopping module helper: MMM-Quiz 
+[2026-03-27 14:52:03.312] [LOG]   [node_helper] Stopping module helper: newsfeed 
+[2026-03-27 14:52:03.312] [LOG]   [node_helper] Stopping module helper: MMM-NINA 
+[2026-03-27 14:52:03.312] [LOG]   [app] Node_helpers stopped ... 
+[533790:0327/145203.317098:ERROR:content/common/zygote/zygote_communication_linux.cc:293] Failed to send GetTerminationStatus message to zygote

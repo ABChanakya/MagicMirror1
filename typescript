@@ -1,0 +1,314 @@
+Script started on 2026-03-27 15:13:09+01:00 [TERM="xterm-256color" TTY="/dev/pts/4" COLUMNS="218" LINES="12"]
+[?2004h]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3[00m$ cd scripts/
+[?2004l[?2004h]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3/scripts[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3/scripts[00m$ cd[K[K.7[K/start.sh 
+[?2004l[start] Starting camera pipeline (background)...
+[start] Camera PID: 545944
+[start] Starting MagicMirror...
+  Remote: http://localhost:8080/remote.html
+  Logs:   /home/bhaskara/Desktop/Magicmirror3/logs/
+  Stop:   Ctrl+C (stops both MM and camera)
+
+
+> magicmirror@2.34.0 start:child
+> MM_CONFIG_FILE=${MM_CONFIG_FILE:-config/config.child-friendly.backup.js} env -u ELECTRON_RUN_AS_NODE DISPLAY="${DISPLAY:=:0}" ./node_modules/.bin/electron js/electron.js
+
+[2026-03-27 15:16:37.433] [LOG]   [90m[app][39m Starting MagicMirror: v2.34.0 
+[2026-03-27 15:16:37.434] [LOG]   [90m[app][39m Loading config ... 
+[2026-03-27 15:16:37.435] [LOG]   [90m[app][39m config template file not exists, no envsubst 
+[2026-03-27 15:16:37.493] [34m[INFO] [39m [90m[check_config][39m [34mChecking config file /home/bhaskara/Desktop/Magicmirror3/MagicMirror/config/config.child-friendly.backup.js ...[39m 
+[2026-03-27 15:16:37.509] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour configuration file doesn't contain syntax errors :)[39m[39m 
+[2026-03-27 15:16:37.509] [34m[INFO] [39m [90m[check_config][39m [34mChecking modules structure configuration ...[39m 
+[2026-03-27 15:16:37.520] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour modules structure configuration doesn't contain errors :)[39m[39m 
+[2026-03-27 15:16:37.520] [LOG]   [90m[app][39m Loading module helpers ... 
+[2026-03-27 15:16:37.520] [LOG]   [90m[app][39m No helper found for module: alert. 
+[2026-03-27 15:16:37.520] [LOG]   [90m[app][39m No helper found for module: clock. 
+[2026-03-27 15:16:37.520] [33m[WARN] [39m [90m[app][39m [33mNo /home/bhaskara/Desktop/Magicmirror3/MagicMirror/modules/MMM-Keypress/MMM-Keypress.js found for module: MMM-Keypress.[39m 
+[2026-03-27 15:16:37.520] [LOG]   [90m[app][39m No helper found for module: MMM-Keypress. 
+[2026-03-27 15:16:37.520] [LOG]   [90m[app][39m No helper found for module: MMM-page-indicator. 
+[2026-03-27 15:16:37.520] [LOG]   [90m[app][39m No helper found for module: MMM-pages. 
+[2026-03-27 15:16:37.520] [LOG]   [90m[app][39m No helper found for module: weather. 
+[2026-03-27 15:16:37.521] [LOG]   [90m[app][39m No helper found for module: MMM-DailyPokemon. 
+[2026-03-27 15:16:37.521] [LOG]   [90m[app][39m No helper found for module: compliments. 
+[2026-03-27 15:16:37.521] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:16:37.521] [LOG]   [90m[node_helper][39m Module helper loaded: MMM-Quiz 
+[2026-03-27 15:16:37.521] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:16:37.521] [LOG]   [90m[node_helper][39m Module helper loaded: MMM-OnThisDay 
+[2026-03-27 15:16:37.521] [LOG]   [90m[app][39m No helper found for module: MMM-Facts. 
+[2026-03-27 15:16:37.531] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:16:37.531] [LOG]   [90m[node_helper][39m Module helper loaded: calendar 
+[2026-03-27 15:16:37.544] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:16:37.544] [LOG]   [90m[node_helper][39m Module helper loaded: newsfeed 
+[2026-03-27 15:16:37.544] [LOG]   [90m[app][39m All module helpers loaded. 
+[2026-03-27 15:16:37.546] [LOG]   [90m[server][39m Starting server on port 8081 ...  
+[2026-03-27 15:16:37.547] [33m[WARN] [39m [90m[server][39m [33mYou're using a full whitelist configuration to allow for all IPs[39m 
+[2026-03-27 15:16:37.558] [LOG]   [90m[app][39m Server started ... 
+[2026-03-27 15:16:37.559] [LOG]   [90m[node_helper][39m Connecting socket for: MMM-Quiz 
+[2026-03-27 15:16:37.559] [LOG]   [90m[node_helper][39m Starting module helper: MMM-Quiz 
+[2026-03-27 15:16:37.559] [LOG]   [90m[node_helper][39m Connecting socket for: MMM-OnThisDay 
+[2026-03-27 15:16:37.559] [LOG]   [90m[node_helper][39m Connecting socket for: calendar 
+[2026-03-27 15:16:37.559] [LOG]   [90m[calendar][39m Starting node helper for: calendar 
+[2026-03-27 15:16:37.559] [LOG]   [90m[node_helper][39m Connecting socket for: newsfeed 
+[2026-03-27 15:16:37.559] [LOG]   [90m[newsfeed][39m Starting node helper for: newsfeed 
+[2026-03-27 15:16:37.559] [LOG]   [90m[app][39m Sockets connected & modules started ... 
+[2026-03-27 15:16:37.626] [LOG]   [90m[electron][39m Launching application. 
+[2026-03-27 15:16:37.872] [34m[INFO] [39m [90m[utils][39m [34m
+####  System Information  ####
+- SYSTEM:   manufacturer: ASUS; model: System Product Name; virtual: false; MM: 2.34.0
+- OS:       platform: linux; distro: Ubuntu; release: 24.04.4 LTS; arch: x64; kernel: 6.17.0-14-generic
+- VERSIONS: electron: 39.2.7; used node: 22.21.1; installed node: 24.14.0; npm: 11.9.0; pm2: 6.0.14
+- ENV:      XDG_SESSION_TYPE: x11; MM_CONFIG_FILE: config/config.child-friendly.backup.js
+            WAYLAND_DISPLAY:  undefined; DISPLAY: :2; ELECTRON_ENABLE_GPU: undefined
+- RAM:      total: 128616.57 MB; free: 117310.89 MB; used: 11305.67 MB
+- OTHERS:   uptime: 34815 minutes; timeZone: Europe/Berlin[39m 
+[2026-03-27 15:16:38.019] [LOG]   [90m[calendar][39m Create new calendarfetcher for url: https://www.calendarlabs.com/ical-calendar/ics/69/Germany_Holidays.ics - Interval: 3600000 
+[2026-03-27 15:16:38.020] [LOG]   [90m[newsfeed][39m Create new newsfetcher for url: https://rss.sueddeutsche.de/rss/Topthemen - Interval: 300000 
+[2026-03-27 15:16:38.021] [LOG]   [90m[MMM-OnThisDay][39m Received socket notification LOAD_EVENTS. 
+[2026-03-27 15:16:38.021] [LOG]   [90m[MMM-OnThisDay][39m Load events ... 
+[2026-03-27 15:16:38.155] [34m[INFO] [39m [90m[newsfeed][39m [34mBroadcasting 15 items.[39m 
+[2026-03-27 15:16:38.541] [34m[INFO] [39m [90m[calendar][39m [34mBroadcasting 13 events from https://www.calendarlabs.com/ical-calendar/ics/69/Germany_Holidays.ics.[39m 
+^C/home/bhaskara/Desktop/Magicmirror3/MagicMirror/node_modules/electron/dist/electron exited with signal SIGINT
+
+[?2004h]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3/scripts[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3/scripts[00m$ clear
+[?2004l[H[2J[3J[?2004h]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3/scripts[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3/scripts[00m$ [K]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3/scripts[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3/scripts[00m$ [K]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3/scripts[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3/scripts[00m$ clear./start.sh 
+[?2004l[start] Starting camera pipeline (background)...
+[start] Camera PID: 547545
+[start] Starting MagicMirror...
+  Remote: http://localhost:8080/remote.html
+  Logs:   /home/bhaskara/Desktop/Magicmirror3/logs/
+  Stop:   Ctrl+C (stops both MM and camera)
+
+
+> magicmirror@2.34.0 start:child
+> MM_CONFIG_FILE=${MM_CONFIG_FILE:-config/config.child-friendly.backup.js} env -u ELECTRON_RUN_AS_NODE DISPLAY="${DISPLAY:=:0}" ./node_modules/.bin/electron js/electron.js
+
+[2026-03-27 15:27:53.770] [LOG]   [90m[app][39m Starting MagicMirror: v2.34.0 
+[2026-03-27 15:27:53.771] [LOG]   [90m[app][39m Loading config ... 
+[2026-03-27 15:27:53.771] [LOG]   [90m[app][39m config template file not exists, no envsubst 
+[2026-03-27 15:27:53.835] [34m[INFO] [39m [90m[check_config][39m [34mChecking config file /home/bhaskara/Desktop/Magicmirror3/MagicMirror/config/config.child-friendly.backup.js ...[39m 
+[2026-03-27 15:27:53.860] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour configuration file doesn't contain syntax errors :)[39m[39m 
+[2026-03-27 15:27:53.860] [34m[INFO] [39m [90m[check_config][39m [34mChecking modules structure configuration ...[39m 
+[2026-03-27 15:27:53.872] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour modules structure configuration doesn't contain errors :)[39m[39m 
+[2026-03-27 15:27:53.872] [LOG]   [90m[app][39m Loading module helpers ... 
+[2026-03-27 15:27:53.872] [LOG]   [90m[app][39m No helper found for module: alert. 
+[2026-03-27 15:27:53.873] [LOG]   [90m[app][39m No helper found for module: clock. 
+[2026-03-27 15:27:53.873] [LOG]   [90m[app][39m No helper found for module: MMM-page-indicator. 
+[2026-03-27 15:27:53.873] [LOG]   [90m[app][39m No helper found for module: MMM-pages. 
+[2026-03-27 15:27:53.873] [LOG]   [90m[app][39m No helper found for module: weather. 
+[2026-03-27 15:27:53.873] [LOG]   [90m[app][39m No helper found for module: MMM-DailyPokemon. 
+[2026-03-27 15:27:53.873] [LOG]   [90m[app][39m No helper found for module: compliments. 
+[2026-03-27 15:27:53.873] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:27:53.873] [LOG]   [90m[node_helper][39m Module helper loaded: MMM-Quiz 
+[2026-03-27 15:27:53.874] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:27:53.874] [LOG]   [90m[node_helper][39m Module helper loaded: MMM-OnThisDay 
+[2026-03-27 15:27:53.874] [LOG]   [90m[app][39m No helper found for module: MMM-Facts. 
+[2026-03-27 15:27:53.884] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:27:53.884] [LOG]   [90m[node_helper][39m Module helper loaded: calendar 
+[2026-03-27 15:27:53.892] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:27:53.892] [LOG]   [90m[node_helper][39m Module helper loaded: newsfeed 
+[2026-03-27 15:27:53.892] [LOG]   [90m[app][39m All module helpers loaded. 
+[2026-03-27 15:27:53.894] [LOG]   [90m[server][39m Starting server on port 8081 ...  
+[2026-03-27 15:27:53.894] [33m[WARN] [39m [90m[server][39m [33mYou're using a full whitelist configuration to allow for all IPs[39m 
+[2026-03-27 15:27:53.901] [LOG]   [90m[app][39m Server started ... 
+[2026-03-27 15:27:53.901] [LOG]   [90m[node_helper][39m Connecting socket for: MMM-Quiz 
+[2026-03-27 15:27:53.901] [LOG]   [90m[node_helper][39m Starting module helper: MMM-Quiz 
+[2026-03-27 15:27:53.901] [LOG]   [90m[node_helper][39m Connecting socket for: MMM-OnThisDay 
+[2026-03-27 15:27:53.901] [LOG]   [90m[node_helper][39m Connecting socket for: calendar 
+[2026-03-27 15:27:53.902] [LOG]   [90m[calendar][39m Starting node helper for: calendar 
+[2026-03-27 15:27:53.902] [LOG]   [90m[node_helper][39m Connecting socket for: newsfeed 
+[2026-03-27 15:27:53.902] [LOG]   [90m[newsfeed][39m Starting node helper for: newsfeed 
+[2026-03-27 15:27:53.902] [LOG]   [90m[app][39m Sockets connected & modules started ... 
+[2026-03-27 15:27:53.971] [LOG]   [90m[electron][39m Launching application. 
+[2026-03-27 15:27:54.240] [34m[INFO] [39m [90m[utils][39m [34m
+####  System Information  ####
+- SYSTEM:   manufacturer: ASUS; model: System Product Name; virtual: false; MM: 2.34.0
+- OS:       platform: linux; distro: Ubuntu; release: 24.04.4 LTS; arch: x64; kernel: 6.17.0-14-generic
+- VERSIONS: electron: 39.2.7; used node: 22.21.1; installed node: 24.14.0; npm: 11.9.0; pm2: 6.0.14
+- ENV:      XDG_SESSION_TYPE: x11; MM_CONFIG_FILE: config/config.child-friendly.backup.js
+            WAYLAND_DISPLAY:  undefined; DISPLAY: :2; ELECTRON_ENABLE_GPU: undefined
+- RAM:      total: 128616.57 MB; free: 116506.34 MB; used: 12110.23 MB
+- OTHERS:   uptime: 34826 minutes; timeZone: Europe/Berlin[39m 
+[2026-03-27 15:27:54.391] [LOG]   [90m[calendar][39m Create new calendarfetcher for url: https://www.calendarlabs.com/ical-calendar/ics/69/Germany_Holidays.ics - Interval: 3600000 
+[2026-03-27 15:27:54.392] [LOG]   [90m[newsfeed][39m Create new newsfetcher for url: https://rss.sueddeutsche.de/rss/Topthemen - Interval: 300000 
+[2026-03-27 15:27:54.393] [LOG]   [90m[MMM-OnThisDay][39m Received socket notification LOAD_EVENTS. 
+[2026-03-27 15:27:54.393] [LOG]   [90m[MMM-OnThisDay][39m Load events ... 
+[2026-03-27 15:27:54.560] [34m[INFO] [39m [90m[newsfeed][39m [34mBroadcasting 15 items.[39m 
+[2026-03-27 15:27:54.925] [34m[INFO] [39m [90m[calendar][39m [34mBroadcasting 13 events from https://www.calendarlabs.com/ical-calendar/ics/69/Germany_Holidays.ics.[39m 
+^C/home/bhaskara/Desktop/Magicmirror3/MagicMirror/node_modules/electron/dist/electron exited with signal SIGINT
+
+[?2004h]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3/scripts[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3/scripts[00m$ ./start.sh 
+[?2004l[start] Starting camera pipeline (background)...
+[start] Camera PID: 548061
+[start] Starting MagicMirror...
+  Remote: http://localhost:8080/remote.html
+  Logs:   /home/bhaskara/Desktop/Magicmirror3/logs/
+  Stop:   Ctrl+C (stops both MM and camera)
+
+
+> magicmirror@2.34.0 start:child
+> MM_CONFIG_FILE=${MM_CONFIG_FILE:-config/config.child-friendly.backup.js} env -u ELECTRON_RUN_AS_NODE DISPLAY="${DISPLAY:=:0}" ./node_modules/.bin/electron js/electron.js
+
+[2026-03-27 15:28:49.977] [LOG]   [90m[app][39m Starting MagicMirror: v2.34.0 
+[2026-03-27 15:28:49.978] [LOG]   [90m[app][39m Loading config ... 
+[2026-03-27 15:28:49.978] [LOG]   [90m[app][39m config template file not exists, no envsubst 
+[2026-03-27 15:28:50.042] [34m[INFO] [39m [90m[check_config][39m [34mChecking config file /home/bhaskara/Desktop/Magicmirror3/MagicMirror/config/config.child-friendly.backup.js ...[39m 
+[2026-03-27 15:28:50.059] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour configuration file doesn't contain syntax errors :)[39m[39m 
+[2026-03-27 15:28:50.059] [34m[INFO] [39m [90m[check_config][39m [34mChecking modules structure configuration ...[39m 
+[2026-03-27 15:28:50.069] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour modules structure configuration doesn't contain errors :)[39m[39m 
+[2026-03-27 15:28:50.070] [LOG]   [90m[app][39m Loading module helpers ... 
+[2026-03-27 15:28:50.070] [LOG]   [90m[app][39m No helper found for module: alert. 
+[2026-03-27 15:28:50.070] [LOG]   [90m[app][39m No helper found for module: clock. 
+[2026-03-27 15:28:50.070] [33m[WARN] [39m [90m[app][39m [33mNo /home/bhaskara/Desktop/Magicmirror3/MagicMirror/modules/MMM-Keypress/MMM-Keypress.js found for module: MMM-Keypress.[39m 
+[2026-03-27 15:28:50.070] [LOG]   [90m[app][39m No helper found for module: MMM-Keypress. 
+[2026-03-27 15:28:50.070] [LOG]   [90m[app][39m No helper found for module: MMM-page-indicator. 
+[2026-03-27 15:28:50.070] [LOG]   [90m[app][39m No helper found for module: MMM-pages. 
+[2026-03-27 15:28:50.070] [LOG]   [90m[app][39m No helper found for module: weather. 
+[2026-03-27 15:28:50.070] [LOG]   [90m[app][39m No helper found for module: MMM-DailyPokemon. 
+[2026-03-27 15:28:50.070] [LOG]   [90m[app][39m No helper found for module: compliments. 
+[2026-03-27 15:28:50.071] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:28:50.071] [LOG]   [90m[node_helper][39m Module helper loaded: MMM-Quiz 
+[2026-03-27 15:28:50.071] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:28:50.071] [LOG]   [90m[node_helper][39m Module helper loaded: MMM-OnThisDay 
+[2026-03-27 15:28:50.071] [LOG]   [90m[app][39m No helper found for module: MMM-Facts. 
+[2026-03-27 15:28:50.081] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:28:50.081] [LOG]   [90m[node_helper][39m Module helper loaded: calendar 
+[2026-03-27 15:28:50.090] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:28:50.090] [LOG]   [90m[node_helper][39m Module helper loaded: newsfeed 
+[2026-03-27 15:28:50.090] [LOG]   [90m[app][39m All module helpers loaded. 
+[2026-03-27 15:28:50.091] [LOG]   [90m[server][39m Starting server on port 8081 ...  
+[2026-03-27 15:28:50.091] [33m[WARN] [39m [90m[server][39m [33mYou're using a full whitelist configuration to allow for all IPs[39m 
+[2026-03-27 15:28:50.099] [LOG]   [90m[app][39m Server started ... 
+[2026-03-27 15:28:50.099] [LOG]   [90m[node_helper][39m Connecting socket for: MMM-Quiz 
+[2026-03-27 15:28:50.099] [LOG]   [90m[node_helper][39m Starting module helper: MMM-Quiz 
+[2026-03-27 15:28:50.099] [LOG]   [90m[node_helper][39m Connecting socket for: MMM-OnThisDay 
+[2026-03-27 15:28:50.099] [LOG]   [90m[node_helper][39m Connecting socket for: calendar 
+[2026-03-27 15:28:50.099] [LOG]   [90m[calendar][39m Starting node helper for: calendar 
+[2026-03-27 15:28:50.099] [LOG]   [90m[node_helper][39m Connecting socket for: newsfeed 
+[2026-03-27 15:28:50.099] [LOG]   [90m[newsfeed][39m Starting node helper for: newsfeed 
+[2026-03-27 15:28:50.099] [LOG]   [90m[app][39m Sockets connected & modules started ... 
+[2026-03-27 15:28:50.172] [LOG]   [90m[electron][39m Launching application. 
+[2026-03-27 15:28:50.441] [34m[INFO] [39m [90m[utils][39m [34m
+####  System Information  ####
+- SYSTEM:   manufacturer: ASUS; model: System Product Name; virtual: false; MM: 2.34.0
+- OS:       platform: linux; distro: Ubuntu; release: 24.04.4 LTS; arch: x64; kernel: 6.17.0-14-generic
+- VERSIONS: electron: 39.2.7; used node: 22.21.1; installed node: 24.14.0; npm: 11.9.0; pm2: 6.0.14
+- ENV:      XDG_SESSION_TYPE: x11; MM_CONFIG_FILE: config/config.child-friendly.backup.js
+            WAYLAND_DISPLAY:  undefined; DISPLAY: :2; ELECTRON_ENABLE_GPU: undefined
+- RAM:      total: 128616.57 MB; free: 116501.79 MB; used: 12114.78 MB
+- OTHERS:   uptime: 34827 minutes; timeZone: Europe/Berlin[39m 
+[2026-03-27 15:28:50.573] [LOG]   [90m[calendar][39m Create new calendarfetcher for url: https://www.calendarlabs.com/ical-calendar/ics/69/Germany_Holidays.ics - Interval: 3600000 
+[2026-03-27 15:28:50.575] [LOG]   [90m[newsfeed][39m Create new newsfetcher for url: https://rss.sueddeutsche.de/rss/Topthemen - Interval: 300000 
+[2026-03-27 15:28:50.576] [LOG]   [90m[MMM-OnThisDay][39m Received socket notification LOAD_EVENTS. 
+[2026-03-27 15:28:50.576] [LOG]   [90m[MMM-OnThisDay][39m Load events ... 
+[2026-03-27 15:28:50.665] [34m[INFO] [39m [90m[newsfeed][39m [34mBroadcasting 15 items.[39m 
+[2026-03-27 15:28:51.060] [34m[INFO] [39m [90m[calendar][39m [34mBroadcasting 13 events from https://www.calendarlabs.com/ical-calendar/ics/69/Germany_Holidays.ics.[39m 
+^C/home/bhaskara/Desktop/Magicmirror3/MagicMirror/node_modules/electron/dist/electron exited with signal SIGINT
+
+[?2004h]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3/scripts[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3/scripts[00m$ ./start.sh 
+[?2004l[start] Starting camera pipeline (background)...
+[start] Camera PID: 548656
+[start] Starting MagicMirror...
+  Remote: http://localhost:8080/remote.html
+  Logs:   /home/bhaskara/Desktop/Magicmirror3/logs/
+  Stop:   Ctrl+C (stops both MM and camera)
+
+
+> magicmirror@2.34.0 start:child
+> MM_CONFIG_FILE=${MM_CONFIG_FILE:-config/config.child-friendly.backup.js} env -u ELECTRON_RUN_AS_NODE DISPLAY="${DISPLAY:=:0}" ./node_modules/.bin/electron js/electron.js
+
+[2026-03-27 15:30:30.892] [LOG]   [90m[app][39m Starting MagicMirror: v2.34.0 
+[2026-03-27 15:30:30.894] [LOG]   [90m[app][39m Loading config ... 
+[2026-03-27 15:30:30.894] [LOG]   [90m[app][39m config template file not exists, no envsubst 
+[2026-03-27 15:30:30.954] [34m[INFO] [39m [90m[check_config][39m [34mChecking config file /home/bhaskara/Desktop/Magicmirror3/MagicMirror/config/config.child-friendly.backup.js ...[39m 
+[2026-03-27 15:30:30.971] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour configuration file doesn't contain syntax errors :)[39m[39m 
+[2026-03-27 15:30:30.971] [34m[INFO] [39m [90m[check_config][39m [34mChecking modules structure configuration ...[39m 
+[2026-03-27 15:30:30.983] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour modules structure configuration doesn't contain errors :)[39m[39m 
+[2026-03-27 15:30:30.983] [LOG]   [90m[app][39m Loading module helpers ... 
+[2026-03-27 15:30:30.983] [LOG]   [90m[app][39m No helper found for module: alert. 
+[2026-03-27 15:30:30.983] [LOG]   [90m[app][39m No helper found for module: clock. 
+[2026-03-27 15:30:30.983] [33m[WARN] [39m [90m[app][39m [33mNo /home/bhaskara/Desktop/Magicmirror3/MagicMirror/modules/MMM-Keypress/MMM-Keypress.js found for module: MMM-Keypress.[39m 
+[2026-03-27 15:30:30.983] [LOG]   [90m[app][39m No helper found for module: MMM-Keypress. 
+[2026-03-27 15:30:30.983] [LOG]   [90m[app][39m No helper found for module: MMM-page-indicator. 
+[2026-03-27 15:30:30.983] [LOG]   [90m[app][39m No helper found for module: MMM-pages. 
+[2026-03-27 15:30:30.984] [LOG]   [90m[app][39m No helper found for module: weather. 
+[2026-03-27 15:30:30.984] [LOG]   [90m[app][39m No helper found for module: MMM-DailyPokemon. 
+[2026-03-27 15:30:30.984] [LOG]   [90m[app][39m No helper found for module: compliments. 
+[2026-03-27 15:30:30.984] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:30:30.984] [LOG]   [90m[node_helper][39m Module helper loaded: MMM-Quiz 
+[2026-03-27 15:30:30.984] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:30:30.984] [LOG]   [90m[node_helper][39m Module helper loaded: MMM-OnThisDay 
+[2026-03-27 15:30:30.985] [LOG]   [90m[app][39m No helper found for module: MMM-Facts. 
+[2026-03-27 15:30:30.994] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:30:30.994] [LOG]   [90m[node_helper][39m Module helper loaded: calendar 
+[2026-03-27 15:30:31.003] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:30:31.003] [LOG]   [90m[node_helper][39m Module helper loaded: newsfeed 
+[2026-03-27 15:30:31.003] [LOG]   [90m[app][39m All module helpers loaded. 
+[2026-03-27 15:30:31.005] [LOG]   [90m[server][39m Starting server on port 8081 ...  
+[2026-03-27 15:30:31.005] [33m[WARN] [39m [90m[server][39m [33mYou're using a full whitelist configuration to allow for all IPs[39m 
+[2026-03-27 15:30:31.013] [LOG]   [90m[app][39m Server started ... 
+[2026-03-27 15:30:31.013] [LOG]   [90m[node_helper][39m Connecting socket for: MMM-Quiz 
+[2026-03-27 15:30:31.013] [LOG]   [90m[node_helper][39m Starting module helper: MMM-Quiz 
+[2026-03-27 15:30:31.013] [LOG]   [90m[node_helper][39m Connecting socket for: MMM-OnThisDay 
+[2026-03-27 15:30:31.013] [LOG]   [90m[node_helper][39m Connecting socket for: calendar 
+[2026-03-27 15:30:31.013] [LOG]   [90m[calendar][39m Starting node helper for: calendar 
+[2026-03-27 15:30:31.013] [LOG]   [90m[node_helper][39m Connecting socket for: newsfeed 
+[2026-03-27 15:30:31.013] [LOG]   [90m[newsfeed][39m Starting node helper for: newsfeed 
+[2026-03-27 15:30:31.013] [LOG]   [90m[app][39m Sockets connected & modules started ... 
+[2026-03-27 15:30:31.081] [LOG]   [90m[electron][39m Launching application. 
+[2026-03-27 15:30:31.350] [34m[INFO] [39m [90m[utils][39m [34m
+####  System Information  ####
+- SYSTEM:   manufacturer: ASUS; model: System Product Name; virtual: false; MM: 2.34.0
+- OS:       platform: linux; distro: Ubuntu; release: 24.04.4 LTS; arch: x64; kernel: 6.17.0-14-generic
+- VERSIONS: electron: 39.2.7; used node: 22.21.1; installed node: 24.14.0; npm: 11.9.0; pm2: 6.0.14
+- ENV:      XDG_SESSION_TYPE: x11; MM_CONFIG_FILE: config/config.child-friendly.backup.js
+            WAYLAND_DISPLAY:  undefined; DISPLAY: :2; ELECTRON_ENABLE_GPU: undefined
+- RAM:      total: 128616.57 MB; free: 116587.55 MB; used: 12029.02 MB
+- OTHERS:   uptime: 34829 minutes; timeZone: Europe/Berlin[39m 
+[2026-03-27 15:30:31.490] [LOG]   [90m[calendar][39m Create new calendarfetcher for url: https://www.calendarlabs.com/ical-calendar/ics/69/Germany_Holidays.ics - Interval: 3600000 
+[2026-03-27 15:30:31.492] [LOG]   [90m[newsfeed][39m Create new newsfetcher for url: https://rss.sueddeutsche.de/rss/Topthemen - Interval: 300000 
+[2026-03-27 15:30:31.493] [LOG]   [90m[MMM-OnThisDay][39m Received socket notification LOAD_EVENTS. 
+[2026-03-27 15:30:31.493] [LOG]   [90m[MMM-OnThisDay][39m Load events ... 
+[2026-03-27 15:30:31.627] [34m[INFO] [39m [90m[newsfeed][39m [34mBroadcasting 15 items.[39m 
+[2026-03-27 15:30:31.990] [34m[INFO] [39m [90m[calendar][39m [34mBroadcasting 13 events from https://www.calendarlabs.com/ical-calendar/ics/69/Germany_Holidays.ics.[39m 
+[2026-03-27 15:35:31.723] [34m[INFO] [39m [90m[newsfeed][39m [34mBroadcasting 15 items.[39m 
+[2026-03-27 15:40:31.834] [34m[INFO] [39m [90m[newsfeed][39m [34mBroadcasting 15 items.[39m 
+[2026-03-27 15:45:31.921] [34m[INFO] [39m [90m[newsfeed][39m [34mBroadcasting 15 items.[39m 
+^C/home/bhaskara/Desktop/Magicmirror3/MagicMirror/node_modules/electron/dist/electron exited with signal SIGINT
+
+[?2004h]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3/scripts[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3/scripts[00m$ clear
+[?2004l[H[2J[3J[?2004h]0;bhaskara@k017-ws22: ~/Desktop/Magicmirror3/scripts[01;32mbhaskara@k017-ws22[00m:[01;34m~/Desktop/Magicmirror3/scripts[00m$ clear./start.sh [6Pclear./start.sh 
+[?2004l[start] Starting camera pipeline (background)...
+[start] Camera PID: 550518
+[start] Starting MagicMirror...
+  Config: config/config.js
+  Logs:   /home/bhaskara/Desktop/Magicmirror3/logs/
+  Stop:   Ctrl+C (stops both MM and camera)
+
+
+> magicmirror@2.34.0 start:default
+> MM_CONFIG_FILE=${MM_CONFIG_FILE:-config/config.js} env -u ELECTRON_RUN_AS_NODE DISPLAY="${DISPLAY:=:0}" ./node_modules/.bin/electron js/electron.js
+
+[2026-03-27 15:47:26.510] [LOG]   [90m[app][39m Starting MagicMirror: v2.34.0 
+[2026-03-27 15:47:26.511] [LOG]   [90m[app][39m Loading config ... 
+[2026-03-27 15:47:26.512] [LOG]   [90m[app][39m config template file not exists, no envsubst 
+[2026-03-27 15:47:26.580] [34m[INFO] [39m [90m[check_config][39m [34mChecking config file /home/bhaskara/Desktop/Magicmirror3/MagicMirror/config/config.js ...[39m 
+[2026-03-27 15:47:26.594] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour configuration file doesn't contain syntax errors :)[39m[39m 
+[2026-03-27 15:47:26.594] [34m[INFO] [39m [90m[check_config][39m [34mChecking modules structure configuration ...[39m 
+[2026-03-27 15:47:26.612] [34m[INFO] [39m [90m[check_config][39m [34m[32mYour modules structure configuration doesn't contain errors :)[39m[39m 
+[2026-03-27 15:47:26.612] [LOG]   [90m[app][39m Loading module helpers ... 
+[2026-03-27 15:47:26.613] [LOG]   [90m[app][39m No helper found for module: alert. 
+[2026-03-27 15:47:26.614] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:47:26.614] [LOG]   [90m[node_helper][39m Module helper loaded: updatenotification 
+[2026-03-27 15:47:26.614] [LOG]   [90m[app][39m No helper found for module: clock. 
+[2026-03-27 15:47:26.626] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:47:26.626] [LOG]   [90m[node_helper][39m Module helper loaded: calendar 
+[2026-03-27 15:47:26.626] [LOG]   [90m[app][39m No helper found for module: compliments. 
+[2026-03-27 15:47:26.626] [LOG]   [90m[app][39m No helper found for module: weather. 
+[2026-03-27 15:47:26.635] [LOG]   [90m[node_helper][39m Initializing new module helper ... 
+[2026-03-27 15:47:26.635] [LOG]   [90m[node_helper][39m Module helper loaded: newsfeed 
+[2026-03-27 15:47:26.635] [LOG]   [90m[app][39m All module helpers loaded. 
+[2026-03-27 15:47:26.637] [LOG]   [90m[server][39m Starting server on port 8080 ...  
+[2026-03-27 15:47:26.637] [33m[WARN] [39m [90m[server][39m [33mYou're using a full whitelist configuration to allow for all IPs[39m 
+[2026-03-27 15:47:26.645] [LOG]   [90m[app][39m Server started ... 
+[2026-03-27 15:47:26.645] [LOG]   [90m[node_helper][39m Connecting socket for: updatenotification 
+[2026-03-27 15:47:26.645] [LOG]   [90m[node_helper][39m Starting module helper: updatenotification 
+[2026-03-27 15:47

@@ -1,0 +1,71 @@
+# Collaboration
+
+This document describes how collaborators of this repository should work together.
+
+## Pull Requests
+
+- never merge your own PR's
+- never merge without someone having approved (approving and merging from same person is allowed)
+- wait for all approvals requested (or the author decides something different in the comments)
+- merge to `master` only for releases or other urgent issues (update notification is only triggered by tags)
+- merges to master should be tagged with the "mastermerge" label so that the test runs through
+
+## Issues
+
+- "real" Issues are closed if the problem is solved and the fix is released
+- unrelated Issues (e.g. related to a foreign module) are closed immediately with a comment to open an issue in the module repository or to discuss this further in the forum or discord
+
+## Releases
+
+Are done by
+
+- [ ] @rejas
+- [ ] @sdetweil
+- [ ] @khassel
+- [ ] @KristjanESPERANTO
+
+### Pre-Deployment steps
+
+- [ ] update dependencies (a few days before)
+
+### Deployment steps
+
+- [ ] pull latest `develop` branch
+- [ ] create `prep-release` branch from `develop`
+  - [ ] update `package.json` and `package-lock.json` to reflect correct version number `2.xx.0`
+  - [ ] test `prep-release` branch
+  - [ ] commit and push all changes
+  - [ ] create pull request from `prep-release` to `develop` branch with title `Prepare Release 2.xx.0`
+  - [ ] after successful test run via github actions: merge pull request to `develop`
+- [ ] review the content of the automatically generated draft release named `unreleased`
+  - [ ] check contributor names
+  - [ ] check auto generated min. node version and adjust it for better readability if necessary
+  - [ ] check if all elements are assigned to the correct category
+  - [ ] change release name to `v2.xx.0`
+- [ ] after successful test run via github actions: create pull request from `develop` to `master` branch
+  - [ ] add label `mastermerge`
+  - [ ] title of the PR is `Release 2.xx.0`
+  - [ ] description of the PR is the body of the draft release with name `v2.xx.0`
+- [ ] after PR tests run without issues, merge PR
+- [ ] edit draft release with name `v2.xx.0`
+  - [ ] set corresponding version tag `v2.xx.0` (with `Select tag` and then `Create new tag`)
+  - [ ] update release link in `Compare to previous Release` by replacing `develop` with new tag `v2.xx.0`
+  - [ ] publish the release (button at the bottom)
+
+### Draft new development release
+
+- [ ] checkout `develop` branch
+- [ ] update `package.json` and `package-lock.json` to reflect correct version number `2.xx.0-develop`
+- [ ] commit and push `develop` branch
+- [ ] if new release will be in January, update the year in LICENSE.md
+
+### After release
+
+- [ ] publish release notes with link to github release on forum in new locked topic
+- [ ] close all issues with label `ready (coming with next release)`
+- [ ] release new documentation by merging `develop` on `master` in documentation repository
+- [ ] publish new version on [npm](https://www.npmjs.com/package/magicmirror)
+  - [ ] use a clean environment (e.g. container)
+  - [ ] clone this repository with the new `master` branch and `cd` into the local repository directory
+  - [ ] log in to npm with `npm login --auth-type legacy` which will ask for username and password and one-time-password which is sent via mail
+  - [ ] execute `npm publish`
