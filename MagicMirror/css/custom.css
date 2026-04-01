@@ -1,0 +1,346 @@
+/* ============================================================
+   MagicMirror3 — custom.css
+   Portrait 4K layout · child-first · high contrast
+   ============================================================ */
+
+/* ── Base typography ──────────────────────────────────────── */
+
+:root {
+  --card-bg: rgba(0, 0, 0, 0.55);
+  --card-radius: 20px;
+  --card-padding: 32px 40px;
+  --accent-blue: #4fc3f7;
+  --accent-green: #81c784;
+  --accent-yellow: #fff176;
+  --text-primary: #ffffff;
+  --text-secondary: #b0bec5;
+}
+
+body {
+  font-size: 24px;
+  font-family: "Roboto", "Helvetica Neue", sans-serif;
+  color: var(--text-primary);
+  background: #000;
+}
+
+/* ── Card wrapper used on all modules ────────────────────── */
+
+.module {
+  background: var(--card-bg);
+  border-radius: var(--card-radius);
+  padding: var(--card-padding);
+  margin: 16px auto;
+  max-width: 900px;
+  width: 90%;
+  backdrop-filter: blur(6px);
+}
+
+.module-header {
+  font-size: 1.1em;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--accent-blue);
+  margin-bottom: 16px;
+}
+
+/* ── Clock — large on every page ─────────────────────────── */
+
+.clock {
+  text-align: center;
+  background: transparent;
+  padding: 24px 0 8px;
+}
+
+.clock .time {
+  font-size: 9rem;
+  font-weight: 300;
+  line-height: 1;
+  letter-spacing: -2px;
+  color: var(--text-primary);
+}
+
+.clock .date {
+  font-size: 2rem;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+/* ── Weather ──────────────────────────────────────────────── */
+
+.weather .large {
+  font-size: 5rem;
+}
+
+.weather .weathericon {
+  font-size: 5rem;
+}
+
+.weather table {
+  font-size: 1.4rem;
+  width: 100%;
+}
+
+.weather td {
+  padding: 6px 12px;
+}
+
+/* ── Calendar ─────────────────────────────────────────────── */
+
+.calendar table {
+  font-size: 1.3rem;
+  width: 100%;
+}
+
+.calendar .event {
+  padding: 8px 0;
+}
+
+.calendar .title {
+  font-size: 1.4rem;
+}
+
+/* ── Compliments ──────────────────────────────────────────── */
+
+.compliments {
+  text-align: center;
+  font-size: 2.2rem;
+  font-style: italic;
+  background: transparent;
+  color: var(--accent-yellow);
+  padding: 16px;
+}
+
+/* ── Newsfeed ─────────────────────────────────────────────── */
+
+.newsfeed .newsfeed-source {
+  font-size: 1rem;
+  color: var(--accent-blue);
+  text-transform: uppercase;
+}
+
+.newsfeed .newsfeed-title {
+  font-size: 1.6rem;
+  line-height: 1.4;
+}
+
+/* ── Pokemon — large card, centered ──────────────────────── */
+
+.MMM-DailyPokemon {
+  text-align: center;
+  max-width: 700px;
+}
+
+.MMM-DailyPokemon img {
+  width: 340px;
+  height: 340px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 0 24px rgba(255, 255, 255, 0.15));
+  transition: transform 0.4s ease;
+}
+
+.MMM-DailyPokemon img:hover,
+.MMM-DailyPokemon.flipped img {
+  transform: scale(1.05);
+}
+
+.MMM-DailyPokemon .pokemon-name {
+  font-size: 3rem;
+  font-weight: 700;
+  margin-top: 16px;
+  color: var(--accent-yellow);
+}
+
+.MMM-DailyPokemon .pokemon-type {
+  font-size: 1.6rem;
+  color: var(--accent-green);
+  margin-top: 8px;
+}
+
+.MMM-DailyPokemon .pokemon-stats {
+  font-size: 1.3rem;
+  margin-top: 16px;
+  color: var(--text-secondary);
+}
+
+/* ── Facts ────────────────────────────────────────────────── */
+
+.MMM-Facts {
+  text-align: center;
+  font-size: 1.6rem;
+  line-height: 1.6;
+  font-style: italic;
+  max-width: 800px;
+}
+
+/* ── On This Day ──────────────────────────────────────────── */
+
+.MMM-OnThisDay {
+  font-size: 1.6rem;
+  line-height: 1.7;
+  max-width: 850px;
+}
+
+.MMM-OnThisDay .onthisday-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--accent-blue);
+  margin-bottom: 12px;
+}
+
+/* ── Quiz — large answer tiles ────────────────────────────── */
+
+.MMM-Quiz {
+  text-align: center;
+  max-width: 860px;
+}
+
+.MMM-Quiz .question {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 32px;
+  line-height: 1.4;
+}
+
+.MMM-Quiz .answers {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+
+.MMM-Quiz .answer {
+  background: rgba(255, 255, 255, 0.1);
+  border: 2px solid rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  padding: 28px 20px;
+  font-size: 1.6rem;
+  cursor: default;
+  transition: background 0.2s;
+}
+
+.MMM-Quiz .answer.selected {
+  background: rgba(79, 195, 247, 0.3);
+  border-color: var(--accent-blue);
+}
+
+.MMM-Quiz .answer.correct {
+  background: rgba(129, 199, 132, 0.4);
+  border-color: var(--accent-green);
+}
+
+.MMM-Quiz .answer.wrong {
+  background: rgba(229, 115, 115, 0.4);
+  border-color: #ef9a9a;
+}
+
+/* Gesture hint labels (A=1 finger, B=2, etc.) */
+.MMM-Quiz .answer::before {
+  display: block;
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+  letter-spacing: 0.05em;
+}
+
+.MMM-Quiz .answer:nth-child(1)::before { content: "✋ 1 Finger"; }
+.MMM-Quiz .answer:nth-child(2)::before { content: "✌️ 2 Finger"; }
+.MMM-Quiz .answer:nth-child(3)::before { content: "🤟 3 Finger"; }
+.MMM-Quiz .answer:nth-child(4)::before { content: "🖖 4 Finger"; }
+
+/* ── NINA alerts ──────────────────────────────────────────── */
+
+.MMM-NINA {
+  font-size: 1.3rem;
+}
+
+.MMM-NINA .nina-alert {
+  border-left: 4px solid #ef9a9a;
+  padding-left: 16px;
+  margin: 8px 0;
+}
+
+/* ── Page indicator ───────────────────────────────────────── */
+
+.MMM-page-indicator .pageCircle {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  margin: 0 8px;
+  display: inline-block;
+  transition: background 0.3s;
+}
+
+.MMM-page-indicator .pageCircle.active {
+  background: var(--accent-blue);
+}
+
+/* ── Clothing advice ──────────────────────────────────────── */
+
+.MMM-ClothingAdvice {
+  text-align: center;
+  max-width: 700px;
+}
+
+.MMM-ClothingAdvice .clothing-icons {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  flex-wrap: wrap;
+  margin: 16px 0;
+}
+
+.MMM-ClothingAdvice .clothing-icons img {
+  width: 96px;
+  height: 96px;
+}
+
+.MMM-ClothingAdvice .clothing-advice-text {
+  font-size: 1.6rem;
+  color: var(--text-secondary);
+  margin-top: 8px;
+}
+
+/* ── Gesture hint overlay (shown briefly after a gesture) ─── */
+
+#gesture-feedback {
+  position: fixed;
+  bottom: 80px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: #fff;
+  padding: 14px 32px;
+  border-radius: 50px;
+  font-size: 1.4rem;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.3s;
+  z-index: 9999;
+}
+
+#gesture-feedback.visible {
+  opacity: 1;
+}
+
+/* ── Portrait-specific: center everything, no side columns ── */
+
+.region.top_left,
+.region.top_right,
+.region.bottom_left,
+.region.bottom_right {
+  width: 0;
+  overflow: hidden;
+}
+
+.region.top_center,
+.region.upper_third,
+.region.middle_center,
+.region.lower_third,
+.region.bottom_bar,
+.region.bottom_center {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}

@@ -1,0 +1,32 @@
+/* Overlays for temperature and brightness visualization - allow interaction through them */
+#remote-control-overlay-temp,
+#remote-control-overlay-brightness {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 90;
+  width: 100vw;
+  height: 100vh;
+  transition: background-color 1.5s ease;
+  pointer-events: none;
+}
+
+/* QR Code Styling */
+.qrcode-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5em;
+}
+
+.qrcode-image {
+  border-radius: 0.5em;
+  padding: 0.5em;
+  background: rgba(255, 255, 255, 0.1);
+  backdrop-filter: blur(10px);
+}
+
+.url-text {
+  text-align: center;
+  margin: 0.3em 0;
+}

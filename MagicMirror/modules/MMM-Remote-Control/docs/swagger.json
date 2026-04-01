@@ -1,0 +1,1406 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "MagicMirror² Remote Control API",
+    "description": "The MMM-Remote-Control Module for MagicMirror² implements a RESTful(-ish) API to control the MagicMirror² using the existing functionality built-in to MMM-Remote-Control, as well as the notifications commands built into most modules. In addition, the API creates a basic framework which allows for each module to expand or customize their own API by a simple notification.",
+    "contact": {
+      "name": "MMM-Remote-Control",
+      "url": "https://github.com/Jopyth/MMM-Remote-Control"
+    },
+    "license": {
+      "name": "MIT License",
+      "url": "https://github.com/Jopyth/MMM-Remote-Control/blob/master/LICENSE.md"
+    },
+    "version": "2.3.0+"
+  },
+  "externalDocs": {
+    "url": "https://github.com/Jopyth/MMM-Remote-Control/issues",
+    "description": "MMM-Remote-Control - Issues"
+  },
+  "tags": [
+    {
+      "name": "Mirror Control",
+      "description": "Control your MagicMirror² and RPi"
+    },
+    {
+      "name": "Module Control",
+      "description": "Control every module in your mirror"
+    },
+    {
+      "name": "API",
+      "description": "Addition since v2.0.0 - Every command available"
+    },
+    {
+      "name": "Legacy",
+      "description": "Legacy API, should NOT be used - will be deprecated soon"
+    }
+  ],
+  "paths": {
+    "/api/test": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Test the API to make sure it's working.",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/saves": {
+      "get": {
+        "tags": ["API"],
+        "summary": "Return backups of the config file",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "saves"
+                  },
+                  "data": [
+                    "2020-11-14T20:41:52.589Z",
+                    "2020-11-14T20:41:13.876Z",
+                    "2020-11-09T20:38:21.783Z",
+                    "2020-11-09T20:32:59.994Z"
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/classes/{:value}": {
+      "get": {
+        "tags": ["Module Control", "API"],
+        "summary": "Show or use a class",
+        "parameters": [
+          {
+            "name": ":value",
+            "in": "path",
+            "required": true,
+            "allowEmptyValue": true,
+            "description": "The class name to use or empty to list all available classes",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "classes"
+                  },
+                  "data": {
+                    "test": {
+                      "toggle": "calendar"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid class name provided",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Invalid value test provided in request. Use /api/classes to see actual values"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/command/{:value}": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Execute command saved in config",
+        "parameters": [
+          {
+            "name": ":value",
+            "in": "path",
+            "required": true,
+            "description": "The name of the custom command to execute",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed command"
+          },
+          "400": {
+            "description": "Bad Request - Command value is required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Value is needed"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config": {
+      "get": {
+        "tags": ["API"],
+        "summary": "Return the current MagicMirror² configuration",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved configuration",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "config"
+                  },
+                  "data": {
+                    "address": "0.0.0.0",
+                    "electronOptions": {
+                      "fullscreen": false
+                    },
+                    "ipWhitelist": [],
+                    "modules": [
+                      {
+                        "module": "MMM-Remote-Control",
+                        "position": "top_right",
+                        "config": {
+                          "showModuleApiMenu": true
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/config/edit": {
+      "post": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Modify the current MagicMirror² configuration",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully updated configuration",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "config"
+                  },
+                  "data": {
+                    "address": "0.0.0.0",
+                    "electronOptions": {
+                      "fullscreen": false
+                    },
+                    "ipWhitelist": [],
+                    "modules": [
+                      {
+                        "module": "MMM-Remote-Control",
+                        "position": "top_right",
+                        "config": {
+                          "showModuleApiMenu": true
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid parameters in request body",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Invalid URL provided in request body"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/monitor/{:action}": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Control the connected display, turning it on or off.",
+        "parameters": [
+          {
+            "name": ":action",
+            "in": "path",
+            "required": true,
+            "allowEmptyValue": true,
+            "description": "The action to perform (on/off/toggle/status)",
+            "schema": {
+              "type": "string"
+            },
+            "examples": {
+              "on": {
+                "summary": "Turn on",
+                "value": "on"
+              },
+              "off": {
+                "summary": "Turn off",
+                "value": "off"
+              },
+              "toggle": {
+                "summary": "Toggle",
+                "value": "toggle"
+              },
+              "status": {
+                "summary": "Status",
+                "value": "status"
+              }
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "monitor": "on"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/monitor/": {
+      "post": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Control the connected display, turning it on or off.",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "monitor": "on"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request"
+          }
+        }
+      }
+    },
+    "/api/shutdown": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Shutdown the system",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed shutdown",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/reboot": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Reboot the system",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed reboot",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/restart": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Restart your MagicMirror² instance (Electron relaunch or process manager restart).",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed restart",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/minimize": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Minimize the browser instance (Electron)",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully minimized window",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/togglefullscreen": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Toggle fullscreen (Electron)",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully toggled fullscreen mode",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/devtools": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Toggle devtools (Electron)",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully toggled devtools",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/translations": {
+      "get": {
+        "tags": ["API"],
+        "summary": "Returns the currently translations file.",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved translations",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "translations"
+                  },
+                  "data": {
+                    "TITLE": "MagicMirror²",
+                    "EDIT_MENU_NAME": "Edit view",
+                    "SHUTDOWN_MENU_NAME": "Power",
+                    "CONFIGURE_MENU_NAME": "Edit config.js",
+                    "CLASSES_MENU_NAME": "Classes",
+                    "VIEW_MIRROR": "MagicMirror²",
+                    "LINKS": "Links",
+                    "API_DOCS": "API Docs",
+                    "WEBSITE": "Website",
+                    "FORUM": "Forum",
+                    "REPOSITORY": "Repository",
+                    "BACK": "Back",
+                    "BRIGHTNESS": "Brightness",
+                    "ZOOM": "Zoom",
+                    "BACKGROUND_COLOR": "Background color",
+                    "FONT_COLOR": "Font color",
+                    "REFRESHMM": "Refresh Browser",
+                    "MONITOROFF": "Turn monitor OFF",
+                    "MONITORON": "Turn monitor ON",
+                    "REBOOT": "Reboot System",
+                    "RESTARTMM": "Restart MagicMirror²",
+                    "SHUTDOWN": "Shutdown",
+                    "FULLSCREEN": "Toggle Fullscreen",
+                    "MINIMIZE": "Minimize (restart to restore)",
+                    "DEVTOOLS": "Toggle DevTools",
+                    "SHOWALL": "Show all",
+                    "HIDEALL": "Hide all",
+                    "RESTORE": "Restore",
+                    "ADD_MODULE": "Add module",
+                    "SEARCH": "Search …",
+                    "INSTALLED": "Installed",
+                    "DOWNLOAD": "Download",
+                    "DOWNLOADING": "Downloading …",
+                    "CODE_LINK": "View code",
+                    "BY": "by",
+                    "ADD_THIS": "Add this module",
+                    "HELP": "Show readme",
+                    "RESET": "Reset",
+                    "NO_HEADER": "(no header)",
+                    "NO_POSITION": "(invisible)",
+                    "ADD_ENTRY": "Add entry",
+                    "NEW_ENTRY_NAME": "(enter name of new entry)",
+                    "EDIT": "Edit",
+                    "REMOVE": "Remove",
+                    "UNSAVED_CHANGES": "Unsaved changes",
+                    "OK": "Ok",
+                    "DISCARD": "Discard changes",
+                    "CANCEL": "Cancel",
+                    "NO_MODULES_LOADED": "No module loaded.",
+                    "SAVE": "Save",
+                    "EXPERIMENTAL": "This is an experimental feature, it could corrupt your config file. Backup your config first, just in case!",
+                    "CONFIRM_SHUTDOWN": "The system will shut down.",
+                    "CONFIRM_REBOOT": "The system will restart.",
+                    "CONFIRM_RESTARTMM": "MagicMirror² will restart.",
+                    "LOAD_ERROR": "If you see this message, an error occurred when loading the javascript file. Please go to the following link and see if this a known problem with your browser:",
+                    "ISSUE_LINK": "Github issue page",
+                    "DONE": "Done.",
+                    "ERROR": "Error!",
+                    "INFO": "Info",
+                    "LOADING": "Loading …",
+                    "LOCKSTRING_WARNING": "This module was hidden by LIST_OF_MODULES, it can not be shown.",
+                    "FORCE_SHOW": "Do it anyway.",
+                    "UPDATE_MENU_NAME": "Updates",
+                    "ALERT_MENU_NAME": "Alert",
+                    "SENDALERT": "Send",
+                    "HIDEALERT": "Hide",
+                    "FORM_TYPE": "Type:",
+                    "FORM_ALERT": "Alert",
+                    "FORM_NOTIFICATION": "Notification",
+                    "FORM_TITLE": "Title:",
+                    "FORM_TITLE_PLACEHOLDER": "Enter title...",
+                    "FORM_MESSAGE": "Message:",
+                    "FORM_MESSAGE_PLACEHOLDER": "Enter message...",
+                    "FORM_SECONDS": "Seconds:",
+                    "RESPONSE_ERROR": "Well that didn't work. Check the MM logs for more details.",
+                    "MODULE_CONTROLS": "Module Controls",
+                    "CUSTOM_MENU": "My Custom Menu",
+                    "NOTIFICATION_MENU_NAME": "Notification",
+                    "SEND_NOTIFICATION": "Send",
+                    "FORM_NOTIFICATION_NAME": "Notification:",
+                    "FORM_NOTIFICATION_NAME_PLACEHOLDER": "MY_NOTIFICATION",
+                    "FORM_NOTIFICATION_NAME_MISSING": "Please enter a notification name.",
+                    "FORM_NOTIFICATION_PAYLOAD": "Payload (JSON or string, optional):",
+                    "FORM_NOTIFICATION_PAYLOAD_PLACEHOLDER": "{\"key\": \"value\"}",
+                    "FORM_NOTIFICATION_URL": "API URL:",
+                    "INVALID_JSON": "Invalid JSON payload."
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/refresh": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Refresh the screen of your MagicMirror² instance.",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully refreshed the screen",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/save": {
+      "get": {
+        "tags": ["API"],
+        "summary": "Saves the MMM-Remote-Control defaults to a file.",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully saved defaults to file",
+            "content": {
+              "application/json": {
+                "example": null
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/brightness/{:setting}": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Get or set the brightness of the Mirror by passing a numerical value (1~100)",
+        "parameters": [
+          {
+            "name": ":setting",
+            "in": "path",
+            "required": true,
+            "description": "The brightness level (1-100) or empty to get current brightness",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved or set brightness",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "brightness"
+                  },
+                  "result": 100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/zoom/{:setting}": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Get or set the zoom level of the Mirror by passing a numerical value (30~200)",
+        "parameters": [
+          {
+            "name": ":setting",
+            "in": "path",
+            "required": true,
+            "description": "The zoom level in percent (30-200) or empty to get current zoom",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved or set zoom level",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "zoom"
+                  },
+                  "result": 100
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/backgroundcolor/{:color}": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Set the background color of the Mirror by passing a hex color value (rrggbb), or 'reset' to clear",
+        "parameters": [
+          {
+            "name": ":color",
+            "in": "path",
+            "required": true,
+            "description": "The background color in rrggbb hex format (e.g. ff0000) or 'reset' to clear",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully set background color",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "backgroundColor"
+                  },
+                  "result": "#ff0000"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/fontcolor/{:color}": {
+      "get": {
+        "tags": ["Mirror Control", "API"],
+        "summary": "Set the font color of the Mirror by passing a hex color value (rrggbb), or 'reset' to clear",
+        "parameters": [
+          {
+            "name": ":color",
+            "in": "path",
+            "required": true,
+            "description": "The font color in rrggbb hex format (e.g. ffffff) or 'reset' to clear",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully set font color",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "fontColor"
+                  },
+                  "result": "#ffffff"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/userpresence/{:value}": {
+      "get": {
+        "tags": ["Module Control", "API"],
+        "summary": "Get or set user presence status",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": ":value",
+            "in": "path",
+            "required": true,
+            "allowEmptyValue": true,
+            "description": "The user presence status (true/false) or empty to get current status",
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved or set user presence status",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "action": "USER_PRESENCE",
+                  "value": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/module/{:moduleName}": {
+      "get": {
+        "tags": ["Module Control", "API"],
+        "summary": "See available actions for a module",
+        "parameters": [
+          {
+            "name": ":moduleName",
+            "in": "path",
+            "required": true,
+            "allowEmptyValue": true,
+            "description": "The name of the module",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved module information",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "data": [
+                    {
+                      "index": "0",
+                      "identifier": "module_0_MMM-Remote-Control",
+                      "name": "MMM-Remote-Control",
+                      "path": "modules/MMM-Remote-Control/",
+                      "file": "MMM-Remote-Control.js",
+                      "position": "top_right",
+                      "header": "",
+                      "configDeepMerge": false,
+                      "config": {
+                        "customCommand": {},
+                        "showModuleApiMenu": true
+                      },
+                      "classes": "MMM-Remote-Control",
+                      "hidden": false,
+                      "lockStrings": []
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/module/{:moduleName*}/{:action}": {
+      "get": {
+        "tags": ["Module Control", "API"],
+        "summary": "Execute an action in the module.",
+        "parameters": [
+          {
+            "name": ":moduleName*",
+            "in": "path",
+            "required": true,
+            "description": "The name of the module",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": ":action",
+            "in": "path",
+            "required": true,
+            "allowEmptyValue": true,
+            "description": "The action to execute (e.g., show, hide, toggle)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed module action",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/module/installed": {
+      "get": {
+        "tags": ["Module Control", "API"],
+        "summary": "List of all modules currently installed on the machine",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved list of installed modules",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "moduleInstalled"
+                  },
+                  "data": [
+                    {
+                      "name": "MMM-Remote-Control",
+                      "id": "Jopyth/MMM-Remote-Control",
+                      "url": "https://github.com/Jopyth/MMM-Remote-Control",
+                      "maintainer": "Jopyth",
+                      "description": "Cleanly shutdown (or reboot) your mirror, edit which modules are shown on your mirror and turn your monitor off and on from a simple website, i.e. from your smartphone.",
+                      "isDefaultModule": false,
+                      "installed": true
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/module/available": {
+      "get": {
+        "tags": ["Module Control", "API"],
+        "summary": "List of modules available for installation",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved list of available modules",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true,
+                  "query": {
+                    "data": "moduleAvailable"
+                  },
+                  "data": [
+                    {
+                      "name": "MMM-Remote-Control",
+                      "id": "Jopyth/MMM-Remote-Control",
+                      "url": "https://github.com/Jopyth/MMM-Remote-Control",
+                      "maintainer": "Jopyth",
+                      "description": "Cleanly shutdown (or reboot) your mirror, edit which modules are shown on your mirror and turn your monitor off and on from a simple website, i.e. from your smartphone.",
+                      "isDefaultModule": false,
+                      "installed": true
+                    }
+                  ]
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/update/{:moduleName}": {
+      "get": {
+        "tags": ["Module Control", "API"],
+        "summary": "Update the module",
+        "parameters": [
+          {
+            "name": ":moduleName",
+            "in": "path",
+            "required": true,
+            "allowEmptyValue": true,
+            "description": "The name of the module to update or 'mmUpdateAvailable' to check for MagicMirror updates",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed update",
+            "content": {
+              "application/json": {
+                "examples": {
+                  "RC": {
+                    "summary": "Remote Control update status",
+                    "value": {
+                      "success": true,
+                      "code": "up-to-date",
+                      "info": "Remote Control already up to date."
+                    }
+                  },
+                  "MM": {
+                    "summary": "MagicMirror update status",
+                    "value": {
+                      "success": true,
+                      "query": {
+                        "data": "mmUpdateAvailable"
+                      },
+                      "result": false
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/install": {
+      "post": {
+        "tags": ["Module Control", "API"],
+        "summary": "Install a module",
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully installed module",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request - Invalid URL provided in request body",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Invalid URL provided in request body"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - API key required",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": false,
+                  "message": "Forbidden: API Key Not Provided in Config! Use secureEndpoints to bypass this message"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/notification/{:notification*}/{:p}": {
+      "get": {
+        "tags": ["Module Control", "API"],
+        "summary": "Send generic notifications to the API",
+        "parameters": [
+          {
+            "name": ":notification*",
+            "in": "path",
+            "required": true,
+            "description": "The notification name to send",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": ":p",
+            "in": "path",
+            "required": true,
+            "allowEmptyValue": true,
+            "description": "The notification payload (optional)",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "security": [
+          {
+            "apikey": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully sent notification",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/config-help.html": {
+      "get": {
+        "tags": ["Legacy"],
+        "summary": "Send generic notifications to the API",
+        "parameters": [
+          {
+            "name": "p",
+            "in": "query",
+            "required": true,
+            "description": "The query parameter",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/remote": {
+      "get": {
+        "tags": ["Legacy"],
+        "summary": "Send generic notifications to the API",
+        "parameters": [
+          {
+            "name": "p",
+            "in": "query",
+            "required": true,
+            "description": "The query parameter",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/get": {
+      "get": {
+        "tags": ["Legacy"],
+        "summary": "Send generic notifications to the API",
+        "parameters": [
+          {
+            "name": ":p",
+            "in": "query",
+            "required": true,
+            "description": "The query parameter",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/post": {
+      "post": {
+        "tags": ["Legacy"],
+        "summary": "Send generic notifications to the API",
+        "parameters": [
+          {
+            "name": ":p",
+            "in": "query",
+            "required": true,
+            "allowEmptyValue": true,
+            "description": "The query parameter",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully executed",
+            "content": {
+              "application/json": {
+                "example": {
+                  "success": true
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "apikey": {
+        "type": "http",
+        "scheme": "bearer"
+      }
+    }
+  }
+}

@@ -1,0 +1,63 @@
+{#
+ # MagicMirror²
+ # Module: MMM-OnThisDay
+ #
+ # By Nikolai Keist (github.com/nkl-kst)
+ # MIT Licensed.
+ #}
+
+{# Wrapper #}
+<div class="{{ config.textSize }}" style="max-width: {{ config.maxWidth }};">
+
+    {% if events | length > 0 %}
+
+        {% if config.carousel %}
+
+            {# Progress bar #}
+            {% if config.carouselProgress %}
+                <style>
+                    .MMM-OnThisDay progress::-webkit-progress-value {
+                        transition: width {{ eventDisplayDuration - 0.5 }}s linear;
+                    }
+                </style>
+
+                <progress id="mmm-otd-carousel-progress" value="0" max="1"></progress>
+            {% endif %}
+
+            {# Carousel mode #}
+            {% set event = events[carouselIndex] %}
+            <div class="bright">{{ event.year }}: {{ event.text }}</div>
+
+            {# List of years #}
+            {% if eventYears | length > 0 %}
+
+                <ul class="event-year-list">
+                    {% for year in eventYears %}
+
+                        {% set fontWeight = 'bold' if loop.index0 == carouselIndex else 'light' %}
+                        <li class="event-year {{ fontWeight }}">{{ year }}</li>
+
+                    {% endfor %}
+                </ul>
+
+            {% endif %}
+
+        {% else %}
+
+            {# Normal mode #}
+            <ul class="bright">
+                {% for event in events %}
+                    <li>{{ event.year }}: {{ event.text }}</li>
+                {% endfor %}
+            </ul>
+
+        {% endif %}
+
+    {% else %}
+
+        {# No data #}
+        {{ 'TEXT_NODATA' | translate }}
+
+    {% endif %}
+
+</div>

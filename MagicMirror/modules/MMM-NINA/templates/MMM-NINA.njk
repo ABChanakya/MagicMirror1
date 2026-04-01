@@ -1,0 +1,32 @@
+{% if alerts.length > 0 %}
+  <div class="normal medium nina-wrapper nina-theme-{{ config.theme }}" {% if config.maxWidth %}style="max-width: {{ config.maxWidth }};" {% endif %}>
+    {% for alert in alerts %}
+      <div class="nina-alert severity-{{ alert.payload.data.severity }}">
+        {% if config.showIcon %}
+          {% if alert.payload.data.transKeys.event %}
+            <img class="nina-icon" src="https://nina.api.proxy.bund.dev/api31/appdata/gsb/eventCodes/{{ alert.payload.data.transKeys.event }}.png">
+          {% else %}
+            <img class="nina-icon" src="https://nina.api.proxy.bund.dev/api31/appdata/gsb/eventCodes/BBK-EVC-001.png">
+          {% endif %}
+        {% endif %}
+        <div class="nina-alert-data">
+          <p class="nina-title"> {{ alert.i18nTitle.de }}</p>
+          {% if config.showCity %}
+            <p class="nina-city">{{alert.cityNames.join(" | ") }}</p>
+          {% endif %}
+          {% if config.showDate %}
+            <p class="nina-issue-date">{{ "issueTime" | translate | safe }} {{alert.date}}</p>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% elif config.showNoWarning %}
+  <div class="normal medium nina-wrapper">
+    <div class="nina-alert severity-Fine">
+      <div class="nina-alert-data">
+        <p class="nina-title">{{ "noWarnings" | translate | safe }}</p>
+      </div>
+    </div>
+  </div>
+{% endif %}

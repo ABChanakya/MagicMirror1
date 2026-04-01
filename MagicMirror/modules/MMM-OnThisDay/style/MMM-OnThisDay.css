@@ -1,0 +1,52 @@
+/* MagicMirror²
+ * Module: MMM-OnThisDay
+ *
+ * By Nikolai Keist (github.com/nkl-kst)
+ * MIT Licensed.
+ */
+
+/* No list dots */
+.MMM-OnThisDay ul {
+    list-style: none;
+    padding-left: 0;
+}
+
+/* Justify texts */
+.MMM-OnThisDay .module-content {
+    text-align: justify;
+}
+
+/* Space between list items */
+.MMM-OnThisDay li:not(:last-child) {
+    margin-bottom: 0.5rem;
+}
+
+.MMM-OnThisDay .event-year-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+
+    justify-content: space-between;
+    margin: 0.5rem 0 0;
+}
+
+.MMM-OnThisDay .event-year-list .event-year {
+    display: inline;
+    margin: 0;
+}
+
+/* Progress bar */
+.MMM-OnThisDay progress {
+    appearance: none;
+    width: 100%;
+    height: 0.2rem;
+    vertical-align: top;
+}
+
+.MMM-OnThisDay progress::-webkit-progress-bar {
+    background-color: var(--color-background);
+}
+
+.MMM-OnThisDay progress::-webkit-progress-value {
+    background-color: var(--color-text-dimmed);
+}

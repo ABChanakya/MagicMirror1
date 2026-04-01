@@ -1,0 +1,20 @@
+opencv-python>=4.8
+mediapipe==0.10.14
+protobuf>=4.25.3,<5
+insightface>=0.7.3
+onnxruntime-gpu>=1.17.0
+ultralytics>=8.3.0
+numpy>=1.24,<2.0
+requests>=2.31
+Pillow>=10.0
+setuptools<81
+tqdm>=4.0
+python-dotenv>=1.0
+# CUDA runtime libs (needed when CUDA toolkit not system-installed)
+nvidia-cublas-cu12
+nvidia-cuda-runtime-cu12
+nvidia-curand-cu12
+nvidia-cudnn-cu12
+nvidia-cufft-cu12
+nvidia-cusparse-cu12
+nvidia-cusolver-cu12

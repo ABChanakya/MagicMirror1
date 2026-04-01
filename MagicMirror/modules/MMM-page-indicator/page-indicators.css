@@ -1,0 +1,53 @@
+.MMM-page-indicator {
+  margin-top: 0 !important;
+
+  .indicator {
+    padding: 0 5px;
+    margin: 0;
+    font-size: 0.5em;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+  }
+
+  .indicator::before {
+    display: block;
+    margin-top: 0.3em;
+    text-align: center;
+    width: 100%;
+  }
+
+  .tooltip {
+    visibility: hidden;
+    background-color: #000;
+    color: #fff;
+    text-align: center;
+    border-radius: 4px;
+    padding: 4px 8px;
+    position: absolute;
+    z-index: 1;
+    bottom: 125%; /* Show above the circle */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.3s;
+    white-space: nowrap;
+    font-size: 0.8em;
+    pointer-events: none;
+  }
+
+  .circle-wrapper {
+    position: relative;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    margin: 0 10px;
+    vertical-align: top;
+  }
+
+  .circle-wrapper:hover .tooltip {
+    visibility: visible;
+    opacity: 1;
+  }
+}

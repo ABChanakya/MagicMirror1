@@ -1,0 +1,11 @@
+{
+  "TITLE": "Title",
+  "UPDATE": "Update",
+  "hp": "PV",
+  "attack": "ATTAQUE",
+  "defense": "DEFENSE",
+  "special-attack": "ATQ.SPE.",
+  "special-defense": "DEF.SPE.",
+  "speed": "VITESSE"
+
+}

@@ -1,0 +1,90 @@
+.nina-wrapper {
+  font-size: 1rem;
+  line-height: 1.2rem;
+  display: flex;
+  flex-direction: column;
+  row-gap: 0.5em;
+}
+
+.right .nina-wrapper,
+.center .nina-wrapper {
+  align-items: stretch;
+}
+
+.nina-icon {
+  font-size: 2rem;
+  margin-right: 12px;
+  height: 45px;
+}
+
+.nina-alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: red;
+}
+
+.nina-alert-data {
+  flex-grow: 2;
+}
+
+.nina-alert.severity-Fine {
+  color: #666;
+}
+
+.nina-alert.severity-Cancel {
+  color: #009900;
+}
+
+.nina-alert.severity-Minor {
+  color: yellow;
+}
+
+.nina-alert .nina-issue-date {
+  font-size: 0.8rem;
+}
+
+.nina-wrapper p {
+  margin-block-start: 0;
+  margin-block-end: 0;
+}
+
+.nina-theme-top .nina-alert,
+.nina-theme-top-floating .nina-alert {
+  justify-content: flex-start;
+  text-align: left;
+  padding: 20px;
+  background: red;
+  color: white;
+}
+
+.nina-theme-top .nina-alert.severity-Cancel,
+.nina-theme-top-floating .nina-alert.severity-Cancel {
+  background: #009900;
+  color: #111;
+}
+
+.nina-theme-top .nina-alert.severity-Minor,
+.nina-theme-top-floating .nina-alert.severity-Minor {
+  background: #ffcc66;
+  color: #8b0000;
+}
+.nina-theme-top .nina-alert.severity-Moderate,
+.nina-theme-top-floating .nina-alert.severity-Moderate {
+  background: #f8c0ac;
+  color: #8b0000;
+}
+
+.nina-theme-top .nina-title,
+.nina-theme-top-floating .nina-title {
+  font-size: 1.2em;
+  font-weight: bold;
+}
+
+.nina-theme-top-floating.nina-wrapper {
+  position: absolute;
+  left: 50%;
+  transform: translate(-50%, 0);
+  z-index: 10;
+  opacity: 0.7;
+}

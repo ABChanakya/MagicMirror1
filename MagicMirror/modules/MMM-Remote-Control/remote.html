@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>%%TRANSLATE:TITLE%%</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="google" content="notranslate" />
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="modules/MMM-Remote-Control/manifest.json" />
+
+    <!-- Theme colors for PWA -->
+    <meta name="theme-color" content="#000000" />
+    <meta name="msapplication-navbutton-color" content="#000000" />
+    <meta name="msapplication-config" content="none" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="MM Remote" />
+
+    <!-- Modern SVG favicon with dark mode support -->
+    <link
+      rel="icon"
+      href="modules/MMM-Remote-Control/img/favicon.svg"
+      type="image/svg+xml"
+    />
+    <link rel="stylesheet" href="css/main.css" />
+    <link rel="stylesheet" href="css/roboto.css" />
+    <link rel="stylesheet" href="css/font-awesome.css" />
+    <link rel="stylesheet" href="modules/MMM-Remote-Control/remote.css" />
+    <link
+      rel="apple-touch-icon"
+      href="modules/MMM-Remote-Control/img/icon-192.png"
+    />
+    <meta name="mobile-web-app-capable" content="yes" />
+  </head>
+
+  <body>
+    <div class="container normal">
+      <div id="module_1_MMM-Remote-Control" class="app">
+        <header class="header">
+          <div
+            id="back-button"
+            class="hidden button"
+            role="button"
+            aria-label="%%TRANSLATE:BACK%%"
+            tabindex="0"
+          >
+            <span class="fa fa-fw fa-angle-left" aria-hidden="true"></span>
+          </div>
+          <span class="header-title">%%TRANSLATE:TITLE%%</span>
+          <div class="header-spacer"></div>
+        </header>
+        <main class="main-content">
+          <!-- Navigation and menu content rendered dynamically after translations load -->
+        </main>
+        <div id="load-error">
+          <span
+            class="fa fa-fw fa-exclamation-circle"
+            aria-hidden="true"
+          ></span>
+          <span class="text">%%TRANSLATE:LOAD_ERROR%%</span>
+          <a href="https://github.com/jopyth/MMM-Remote-Control/issues"
+            >%%TRANSLATE:ISSUE_LINK%%</a
+          >
+        </div>
+        <div id="result-overlay" class="overlay hidden"></div>
+        <div id="result" class="result hidden">
+          <div id="close-result">
+            <span class="fa fa-times-circle delete-button"></span>
+          </div>
+          <div id="result-contents">
+            <!-- content is inserted here -->
+          </div>
+        </div>
+        <div id="popup-container" class="popup hidden">
+          <div id="close-popup">
+            <span class="fa fa-times-circle delete-button"></span>
+          </div>
+          <div id="popup-contents" class="popup-contents">
+            <!-- content is inserted here -->
+          </div>
+        </div>
+        <div id="success-popup" class="success-popup hidden">
+          <span class="fa fa-fw fa-check-circle"></span>
+          <span class="text">%%TRANSLATE:DONE%%</span>
+        </div>
+      </div>
+    </div>
+    <script src="%%CONFIG_PATH%%"></script>
+    <script src="socket.io/socket.io.js"></script>
+    <script src="js/socketclient.js"></script>
+    <script type="importmap">
+      {"imports": {"marked": "./modules/MMM-Remote-Control/node_modules/marked/lib/marked.esm.js"}}
+    </script>
+    <script
+      type="module"
+      src="modules/MMM-Remote-Control/remote-menu.mjs"
+    ></script>
+  </body>
+</html>
