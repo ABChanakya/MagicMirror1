@@ -1,0 +1,140 @@
+{
+	"name": "magicmirror",
+	"version": "2.34.0",
+	"description": "The open source modular smart mirror platform.",
+	"keywords": [
+		"magic mirror",
+		"magicmirror",
+		"smart mirror",
+		"mirror UI",
+		"modular"
+	],
+	"homepage": "https://magicmirror.builders",
+	"bugs": {
+		"url": "https://github.com/MagicMirrorOrg/MagicMirror/issues"
+	},
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/MagicMirrorOrg/MagicMirror"
+	},
+	"license": "MIT",
+	"author": "Michael Teeuw",
+	"contributors": [
+		{
+			"name": "MagicMirror contributors",
+			"url": "https://github.com/MagicMirrorOrg/MagicMirror/graphs/contributors"
+		}
+	],
+	"type": "commonjs",
+	"imports": {
+		"#module_functions": {
+			"default": "./js/module_functions.js"
+		},
+		"#server_functions": {
+			"default": "./js/server_functions.js"
+		}
+	},
+	"main": "js/electron.js",
+	"scripts": {
+		"config:check": "node js/check_config.js",
+		"config:check:default": "MM_CONFIG_FILE=config/config.js node js/check_config.js",
+		"config:check:child": "MM_CONFIG_FILE=config/config.child.js node js/check_config.js",
+		"postinstall": "git clean -df fonts vendor",
+		"install-mm": "npm install --no-audit --no-fund --no-update-notifier --only=prod --omit=dev",
+		"install-mm:dev": "npm install --no-audit --no-fund --no-update-notifier && npx playwright install chromium",
+		"lint:css": "stylelint 'css/main.css' 'css/roboto.css' 'css/font-awesome.css' 'modules/default/**/*.css' --fix",
+		"lint:js": "eslint --fix",
+		"lint:markdown": "markdownlint-cli2 . --fix",
+		"lint:prettier": "prettier . --write",
+		"prepare": "[ -f node_modules/.bin/husky ] && husky || echo no husky installed.",
+		"server": "node ./serveronly",
+		"server:watch": "node ./serveronly/watcher.js",
+		"start": "node --run start:default",
+		"start:mm3": "bash ../scripts/start.sh",
+		"start:mm3:child": "bash ../scripts/start-child.sh",
+		"start:default": "MM_CONFIG_FILE=${MM_CONFIG_FILE:-config/config.js} env -u ELECTRON_RUN_AS_NODE DISPLAY=\"${DISPLAY:=:0}\" ./node_modules/.bin/electron js/electron.js",
+		"start:child": "MM_CONFIG_FILE=${MM_CONFIG_FILE:-config/config.child.js} env -u ELECTRON_RUN_AS_NODE DISPLAY=\"${DISPLAY:=:0}\" ./node_modules/.bin/electron js/electron.js",
+		"start:child:pi": "MM_CONFIG_FILE=${MM_CONFIG_FILE:-config/config.child.js} ELECTRON_DISABLE_GPU=${ELECTRON_DISABLE_GPU:-1} ELECTRON_ENABLE_GPU=${ELECTRON_ENABLE_GPU:-0} env -u ELECTRON_RUN_AS_NODE DISPLAY=\"${DISPLAY:=:0}\" ./node_modules/.bin/electron js/electron.js --disable-gpu",
+		"start:dev": "node --run start:x11 -- dev",
+		"start:wayland": "WAYLAND_DISPLAY=\"${WAYLAND_DISPLAY:=wayland-1}\" ./node_modules/.bin/electron js/electron.js --ozone-platform=wayland",
+		"start:wayland:dev": "node --run start:wayland -- dev",
+		"start:windows": ".\\node_modules\\.bin\\electron js\\electron.js",
+		"start:windows:dev": "node --run start:windows -- dev",
+		"start:x11": "DISPLAY=\"${DISPLAY:=:0}\" ./node_modules/.bin/electron js/electron.js",
+		"start:x11:dev": "node --run start:x11 -- dev",
+		"test": "vitest run",
+		"test:calendar": "node ./modules/default/calendar/debug.js",
+		"test:coverage": "vitest run --coverage",
+		"test:css": "stylelint 'css/main.css' 'css/roboto.css' 'css/font-awesome.css' 'modules/default/**/*.css'",
+		"test:e2e": "vitest run tests/e2e",
+		"test:electron": "vitest run tests/electron",
+		"test:js": "eslint",
+		"test:markdown": "markdownlint-cli2 .",
+		"test:prettier": "prettier . --check",
+		"test:spelling": "cspell . --gitignore",
+		"test:ui": "vitest --ui",
+		"test:unit": "vitest run tests/unit",
+		"test:watch": "vitest"
+	},
+	"lint-staged": {
+		"*": "prettier --ignore-unknown --write",
+		"*.js": "eslint --fix",
+		"*.css": "stylelint --fix"
+	},
+	"dependencies": {
+		"@fontsource/roboto": "^5.2.9",
+		"@fontsource/roboto-condensed": "^5.2.8",
+		"@fortawesome/fontawesome-free": "^7.1.0",
+		"ajv": "^8.17.1",
+		"animate.css": "^4.1.1",
+		"console-stamp": "^3.1.2",
+		"croner": "^9.1.0",
+		"envsub": "^4.1.0",
+		"eslint": "^9.39.2",
+		"express": "^5.2.1",
+		"feedme": "^2.0.2",
+		"helmet": "^8.1.0",
+		"html-to-text": "^9.0.5",
+		"iconv-lite": "^0.7.1",
+		"ipaddr.js": "^2.3.0",
+		"moment": "^2.30.1",
+		"moment-timezone": "^0.6.0",
+		"node-ical": "^0.22.1",
+		"nunjucks": "^3.2.4",
+		"pm2": "^6.0.14",
+		"socket.io": "^4.8.3",
+		"suncalc": "^1.9.0",
+		"systeminformation": "^5.28.2",
+		"undici": "^7.16.0",
+		"weathericons": "^2.1.0"
+	},
+	"devDependencies": {
+		"@stylistic/eslint-plugin": "^5.6.1",
+		"@vitest/coverage-v8": "^4.0.16",
+		"@vitest/ui": "^4.0.16",
+		"cspell": "^9.4.0",
+		"eslint-plugin-import-x": "^4.16.1",
+		"eslint-plugin-jsdoc": "^61.5.0",
+		"eslint-plugin-package-json": "^0.85.0",
+		"eslint-plugin-playwright": "^2.4.0",
+		"eslint-plugin-vitest": "^0.5.4",
+		"express-basic-auth": "^1.2.1",
+		"husky": "^9.1.7",
+		"jsdom": "^27.4.0",
+		"lint-staged": "^16.2.7",
+		"markdownlint-cli2": "^0.20.0",
+		"playwright": "^1.57.0",
+		"prettier": "^3.7.4",
+		"prettier-plugin-jinja-template": "^2.1.0",
+		"stylelint": "^16.26.1",
+		"stylelint-config-standard": "^39.0.1",
+		"stylelint-prettier": "^5.0.3",
+		"vitest": "^4.0.16"
+	},
+	"optionalDependencies": {
+		"electron": "^39.2.7"
+	},
+	"engines": {
+		"node": ">=22.21.1 <23 || >=24"
+	}
+}
