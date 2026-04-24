@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
-# start.sh — Start MagicMirror + camera pipeline with the standard profile.
+# start.sh — Start MagicMirror + camera pipeline with the child profile.
 # MagicMirror runs in the foreground (so Electron can open on your display).
 # Camera runs in the background.
+# Override profile: MM_CONFIG_FILE=config/config.js npm run start:mm3
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -34,11 +35,11 @@ trap 'bash "$ROOT/scripts/stop.sh" 2>/dev/null || true' EXIT
 
 cd "$MM_DIR"
 
-# Use the standard profile unless MM_CONFIG_FILE points to a child/custom config.
-MM_CFG="${MM_CONFIG_FILE:-config/config.js}"
-if [ ! -f "$MM_CFG" ]; then
-  echo "[start] $MM_CFG not found, falling back to config/config.js"
-  MM_CFG="config/config.js"
+# Default to child profile; override by setting MM_CONFIG_FILE before calling.
+MM_CFG="${MM_CONFIG_FILE:-config/config.child.js}"
+if [ ! -f "$MM_DIR/$MM_CFG" ] && [ ! -f "$MM_CFG" ]; then
+  echo "[start] $MM_CFG not found, falling back to config/config.child.js"
+  MM_CFG="config/config.child.js"
 fi
 
 # Raspberry Pi/ARM systems can be more stable with GPU acceleration disabled.

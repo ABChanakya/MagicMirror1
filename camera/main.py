@@ -50,15 +50,19 @@ FACE_DETECT_EVERY     = int(os.getenv("FACE_DETECT_EVERY",       "3"))
 HAND_FLICKER_TOLERANCE = int(os.getenv("HAND_FLICKER_FRAMES",    "3"))
 HAND_GONE_GRACE       = float(os.getenv("HAND_GONE_GRACE",       "0.5"))
 MIRROR_FLIP           = os.getenv("MIRROR_FLIP", "false").strip().lower() in ("1", "true", "yes")
-DEBUG_PORT            = int(os.getenv("DEBUG_PORT",              "8082"))
+DEBUG_PORT            = int(os.getenv("DEBUG_PORT",              "8083"))
 
-# ── Debug JPEG server ─────────────────────────────────────────────────────────
+# ── Debug server state ────────────────────────────────────────────────────────
+
+import json as _json
 
 _jpeg_lock   = threading.Lock()
 _latest_jpeg = b""
 
-# Prometheus-style counters
-_counters = {"frames_processed": 0, "gestures_fired": 0, "face_hits": 0, "face_misses": 0}
+_state_lock   = threading.Lock()
+_latest_state: dict = {}
+
+_counters      = {"frames_processed": 0, "gestures_fired": 0, "face_hits": 0, "face_misses": 0}
 _counters_lock = threading.Lock()
 
 
@@ -75,35 +79,166 @@ def _update_jpeg(frame_bgr: np.ndarray):
             _latest_jpeg = buf.tobytes()
 
 
+def _update_state(state: dict):
+    with _state_lock:
+        global _latest_state
+        _latest_state = state
+
+
+_DEBUG_HTML = """\
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MagicMirror3 Camera Debug</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #111; color: #eee; font-family: monospace; display: flex;
+         flex-direction: column; align-items: center; padding: 16px; gap: 12px; }
+  h1 { font-size: 1.1rem; color: #aaa; letter-spacing: 2px; }
+  #frame-wrap { position: relative; }
+  #frame { display: block; max-width: 100%; border: 2px solid #333; border-radius: 4px; }
+  #panel { width: 100%; max-width: 700px; display: grid;
+           grid-template-columns: 1fr 1fr; gap: 8px; }
+  .card { background: #1a1a1a; border: 1px solid #333; border-radius: 6px;
+          padding: 10px 14px; }
+  .card h2 { font-size: 0.7rem; color: #666; text-transform: uppercase;
+             letter-spacing: 1px; margin-bottom: 6px; }
+  .row { display: flex; justify-content: space-between; padding: 2px 0; font-size: 0.85rem; }
+  .val { color: #7df; font-weight: bold; }
+  .val.green  { color: #4f4; }
+  .val.yellow { color: #ff4; }
+  .val.grey   { color: #888; }
+  .val.red    { color: #f44; }
+  #dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%;
+         background: #f44; margin-right: 6px; }
+  #dot.live { background: #4f4; animation: pulse 1s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+  #err { color: #f84; font-size: 0.75rem; display: none; margin-top: 4px; }
+</style>
+</head>
+<body>
+<h1><span id="dot"></span>MagicMirror3 — Camera Debug</h1>
+<img id="frame" src="/camera-frame.jpg" width="640" height="480" alt="camera">
+<div id="panel">
+  <div class="card">
+    <h2>Pipeline</h2>
+    <div class="row"><span>FPS</span><span class="val" id="fps">—</span></div>
+    <div class="row"><span>Presence</span><span class="val" id="presence">—</span></div>
+    <div class="row"><span>Frames</span><span class="val" id="frames">—</span></div>
+  </div>
+  <div class="card">
+    <h2>Gesture</h2>
+    <div class="row"><span>State</span><span class="val" id="g-state">—</span></div>
+    <div class="row"><span>Current</span><span class="val" id="g-current">—</span></div>
+    <div class="row"><span>Sent</span><span class="val" id="g-sent">—</span></div>
+    <div class="row"><span>Progress</span><span class="val" id="g-progress">—</span></div>
+  </div>
+  <div class="card">
+    <h2>Face</h2>
+    <div class="row"><span>Profile</span><span class="val" id="f-profile">—</span></div>
+    <div class="row"><span>Confidence</span><span class="val" id="f-conf">—</span></div>
+    <div class="row"><span>Hits / Misses</span><span class="val" id="f-hm">—</span></div>
+  </div>
+  <div class="card">
+    <h2>Config</h2>
+    <div class="row"><span>AI Scale</span><span class="val" id="ai-scale">—</span></div>
+    <div class="row"><span>Flip</span><span class="val" id="flip">—</span></div>
+    <div class="row"><span>Gestures fired</span><span class="val" id="g-fired">—</span></div>
+  </div>
+</div>
+<div id="err">Connection lost — retrying…</div>
+<script>
+const $ = id => document.getElementById(id);
+const dot = $('dot'), err = $('err');
+
+// ── Live frame: reload img src with cache-buster every 120ms ──────────────
+const img = $('frame');
+let frameOk = true;
+setInterval(() => {
+  const next = new Image();
+  next.onload  = () => { img.src = next.src; frameOk = true;
+                         dot.className = 'live'; err.style.display='none'; };
+  next.onerror = () => { frameOk = false;
+                         dot.className = ''; err.style.display='block'; };
+  next.src = '/camera-frame.jpg?t=' + Date.now();
+}, 120);
+
+// ── State polling every 350ms ─────────────────────────────────────────────
+function colorClass(val) {
+  if (!val || val === 'none' || val === 'away' || val === 'IDLE') return 'grey';
+  if (val === 'present' || val === 'LOCKED') return 'green';
+  if (val === 'BUILDING' || val === 'GRACE')  return 'yellow';
+  return '';
+}
+function set(id, text, cls) {
+  const el = $(id);
+  el.textContent = text ?? '—';
+  el.className = 'val ' + (cls || colorClass(String(text)));
+}
+setInterval(() => {
+  fetch('/state').then(r => r.json()).then(s => {
+    set('fps',        (s.fps||0).toFixed(1) + ' fps', s.fps > 10 ? 'green' : 'yellow');
+    set('presence',   s.presence);
+    set('frames',     s.frames_processed);
+    set('g-state',    s.gesture_state);
+    set('g-current',  s.gesture_current || 'none');
+    set('g-sent',     s.gesture_sent    || 'none');
+    set('g-progress', s.hold_progress != null ? (s.hold_progress*100).toFixed(0)+'%' : '—', '');
+    set('f-profile',  s.face_profile  || 'none');
+    set('f-conf',     s.face_confidence != null ? (s.face_confidence*100).toFixed(1)+'%' : '—', '');
+    set('f-hm',       (s.face_hits||0) + ' / ' + (s.face_misses||0), '');
+    set('ai-scale',   s.ai_scale, '');
+    set('flip',       s.mirror_flip ? 'on' : 'off', s.mirror_flip ? 'yellow' : 'grey');
+    set('g-fired',    s.gestures_fired, '');
+  }).catch(() => {});
+}, 350);
+</script>
+</body>
+</html>
+"""
+
+
 class _DebugHandler(BaseHTTPRequestHandler):
     def log_message(self, *_):
-        pass  # suppress per-request access log
+        pass
+
+    def _send(self, code: int, ctype: str, body: bytes):
+        self.send_response(code)
+        self.send_header("Content-Type", ctype)
+        self.send_header("Content-Length", str(len(body)))
+        self.send_header("Cache-Control", "no-store")
+        self.end_headers()
+        self.wfile.write(body)
 
     def do_GET(self):
         if self.path == "/camera-view":
+            self._send(200, "text/html; charset=utf-8", _DEBUG_HTML.encode())
+
+        elif self.path.startswith("/camera-frame.jpg"):
             with _jpeg_lock:
                 data = _latest_jpeg
             if data:
-                self.send_response(200)
-                self.send_header("Content-Type", "image/jpeg")
-                self.send_header("Content-Length", str(len(data)))
-                self.end_headers()
-                self.wfile.write(data)
+                self._send(200, "image/jpeg", data)
             else:
-                self.send_response(503)
-                self.end_headers()
+                self.send_response(503); self.end_headers()
+
+        elif self.path == "/state":
+            with _state_lock:
+                s = dict(_latest_state)
+            with _counters_lock:
+                s.update(_counters)
+            s["ai_scale"]    = AI_SCALE
+            s["mirror_flip"] = MIRROR_FLIP
+            self._send(200, "application/json", _json.dumps(s).encode())
+
         elif self.path == "/metrics":
             with _counters_lock:
                 lines = [f"{k} {v}" for k, v in _counters.items()]
-            body = "\n".join(lines).encode()
-            self.send_response(200)
-            self.send_header("Content-Type", "text/plain")
-            self.send_header("Content-Length", str(len(body)))
-            self.end_headers()
-            self.wfile.write(body)
+            self._send(200, "text/plain", "\n".join(lines).encode())
+
         else:
-            self.send_response(404)
-            self.end_headers()
+            self.send_response(404); self.end_headers()
 
 
 def _start_debug_server(port: int):
@@ -226,7 +361,7 @@ def open_camera(device: str) -> cv2.VideoCapture:
 def parse_args():
     p = argparse.ArgumentParser(description="MagicMirror3 camera pipeline")
     p.add_argument("--device",      default=os.getenv("CAMERA_DEVICE", "/dev/video0"))
-    p.add_argument("--bridge-port", type=int, default=int(os.getenv("BRIDGE_PORT", str(DEBUG_PORT))))
+    p.add_argument("--bridge-port", type=int, default=int(os.getenv("BRIDGE_PORT", "8082")))
     p.add_argument("--debug",       action="store_true")
     return p.parse_args()
 
@@ -431,7 +566,16 @@ def main():
 
             if face_future is not None and face_future.done():
                 try:
-                    cached_faces = face_future.result()
+                    raw_faces = face_future.result()
+                    # Scale bbox coords from AI-downsampled space back to full frame
+                    if AI_SCALE != 1.0 and raw_faces:
+                        inv = 1.0 / AI_SCALE
+                        cached_faces = [
+                            {**f, "location": tuple(int(c * inv) for c in f["location"])}
+                            for f in raw_faces
+                        ]
+                    else:
+                        cached_faces = raw_faces
                 except Exception as e:
                     logger.debug("Face future error: %s", e)
                     cached_faces = []
@@ -473,7 +617,7 @@ def main():
                     logger.info("Presence: away (%.1fs)", away_for)
                     sender.send_presence("away")
 
-            # ── Annotate + push debug JPEG ────────────────────────────────
+            # ── Annotate + push debug JPEG + state ───────────────────────
             annotated = annotate_frame(
                 frame,
                 disp_landmarks,
@@ -484,6 +628,16 @@ def main():
                 measured_fps,
             )
             _update_jpeg(annotated)
+            _update_state({
+                "fps":              round(measured_fps, 1),
+                "presence":         "present" if presence else "away",
+                "gesture_state":    gesture_state,
+                "gesture_current":  current_gesture_label,
+                "gesture_sent":     sent_gesture_state,
+                "hold_progress":    round(hold_progress, 2),
+                "face_profile":     best_profile,
+                "face_confidence":  round(best_confidence, 3),
+            })
 
     except KeyboardInterrupt:
         logger.info("KeyboardInterrupt — shutting down.")
