@@ -2,19 +2,15 @@
 gesture_detector.py
 Finger-count gesture detection using MediaPipe Hands.
 
-Recognised gestures:
-  fingers_1 … fingers_5       short hold (FINGER_HOLD_SECONDS, default 0.5s)
-  fingers_1_long … fingers_5_long  long hold (FINGER_LONG_HOLD_SECONDS, default 2.0s)
-
-hold_progress      (0.0–1.0) tracks progress toward short-hold threshold.
-long_hold_progress (0.0–1.0) tracks progress toward long-hold threshold.
-Both are updated every frame and exposed for the UI progress bar.
+Compatible with mediapipe 0.8.5 (PINTO0309 Jetson Nano wheel) and newer.
+Python 3.6+ compatible — no union type syntax, no walrus operator.
 """
 
 import logging
 import os
 import time
 from collections import deque
+from typing import Optional
 
 import numpy as np
 
@@ -27,27 +23,32 @@ logger = logging.getLogger(__name__)
 
 FINGER_EXTENSION_THRESHOLD = 0.02  # normalised units; tip must be this much above PIP
 
+# Hand landmark indices — identical across all mediapipe versions.
+# Using integers avoids the HandLandmark enum which changed between versions.
+# (tip_idx, pip_idx, mcp_idx) for each non-thumb finger
+_FINGER_JOINTS = [
+    (8,  6,  5),   # index
+    (12, 10, 9),   # middle
+    (16, 14, 13),  # ring
+    (20, 18, 17),  # pinky
+]
+_THUMB_TIP = 4
+_THUMB_CMC = 1
+
 
 class GestureDetector:
-    def __init__(
-        self,
-        finger_hold_seconds: float | None = None,
-    ):
+    def __init__(self, finger_hold_seconds=None):
+        # type: (Optional[float]) -> None
         if finger_hold_seconds is None:
             finger_hold_seconds = float(os.getenv("FINGER_HOLD_SECONDS", "0.5"))
 
-        self.finger_hold_seconds      = finger_hold_seconds
+        self.finger_hold_seconds = finger_hold_seconds
         self.finger_long_hold_seconds = float(os.getenv("FINGER_LONG_HOLD_SECONDS", "2.0"))
-        self.finger_debounce_frames   = int(os.getenv("FINGER_DEBOUNCE_FRAMES", "3"))
+        self.finger_debounce_frames = int(os.getenv("FINGER_DEBOUNCE_FRAMES", "3"))
 
-        self.enabled            = True
-        self.backend            = "mediapipe"
-        self.gesture_model_name = ""
-        self.yolo_runtime       = ""
-        self.yolo_model         = None
-
+        self.enabled = True
         self.mp_hands = None
-        self.hands    = None
+        self.hands = None
         self._init_mediapipe()
 
         logger.info(
@@ -55,23 +56,19 @@ class GestureDetector:
             self.finger_hold_seconds, self.finger_long_hold_seconds, self.finger_debounce_frames,
         )
 
-        # Temporal smoothing — majority vote over last 5 raw counts
-        self._raw_count_buf: deque = deque(maxlen=5)
+        self._raw_count_buf = deque(maxlen=5)
 
-        # Hold tracking
-        self._finger_count_start: float | None = None
-        self._last_stable_count:  int   | None = None
+        self._finger_count_start = None  # type: Optional[float]
+        self._last_stable_count = None   # type: Optional[int]
         self._hold_frames = 0
 
         # Public attributes read by main.py every frame
-        self.last_landmarks    = None
-        self.last_finger_state: int | None = None   # stable finger count (0-5)
-        self.hold_progress: float      = 0.0        # 0.0–1.0 toward short hold
-        self.long_hold_progress: float = 0.0        # 0.0–1.0 toward long hold
-        self._short_fired = False   # has short-hold fired for current stable count?
-        self._long_fired  = False   # has long-hold fired for current stable count?
-
-    # ── Backend init ───────────────────────────────────────────────────────
+        self.last_landmarks = None
+        self.last_finger_state = None  # type: Optional[int]
+        self.hold_progress = 0.0
+        self.long_hold_progress = 0.0
+        self._short_fired = False
+        self._long_fired = False
 
     def _init_mediapipe(self):
         if mp is None or not hasattr(mp, "solutions"):
@@ -83,19 +80,17 @@ class GestureDetector:
         self.hands = self.mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=1,
-            min_detection_confidence=float(os.getenv("MP_HAND_DET_CONF",   "0.3")),
-            min_tracking_confidence= float(os.getenv("MP_HAND_TRACK_CONF", "0.3")),
+            min_detection_confidence=float(os.getenv("MP_HAND_DET_CONF", "0.3")),
+            min_tracking_confidence=float(os.getenv("MP_HAND_TRACK_CONF", "0.3")),
         )
         logger.info("Gesture backend: mediapipe")
 
-    # ── Public API ─────────────────────────────────────────────────────────
-
-    def process_frame(self, rgb_frame: np.ndarray) -> str | None:
+    def process_frame(self, rgb_frame):
+        # type: (np.ndarray) -> Optional[str]
         """
         Process one RGB frame.
-        Updates self.last_landmarks, self.last_finger_state, self.hold_progress.
-        Returns "fingers_N" when the hold threshold is first reached, else None.
-        main.py owns cooldown / state-machine logic.
+        Updates last_landmarks, last_finger_state, hold_progress.
+        Returns "fingers_N" when hold threshold is first reached, else None.
         """
         if not self.enabled:
             return None
@@ -106,8 +101,8 @@ class GestureDetector:
             self._reset()
             return None
 
-        landmarks  = result.multi_hand_landmarks[0].landmark
-        handedness = result.multi_handedness[0].classification[0].label  # "Left" or "Right"
+        landmarks = result.multi_hand_landmarks[0].landmark
+        handedness = result.multi_handedness[0].classification[0].label
         self.last_landmarks = landmarks
         now = time.monotonic()
 
@@ -123,21 +118,20 @@ class GestureDetector:
         if self.hands is not None:
             self.hands.close()
 
-    # ── Internal helpers ───────────────────────────────────────────────────
-
     def _reset(self):
-        self.last_landmarks        = None
-        self.last_finger_state     = None
-        self.hold_progress         = 0.0
-        self.long_hold_progress    = 0.0
-        self._finger_count_start   = None
-        self._last_stable_count    = None
-        self._hold_frames          = 0
-        self._short_fired          = False
-        self._long_fired           = False
+        self.last_landmarks = None
+        self.last_finger_state = None
+        self.hold_progress = 0.0
+        self.long_hold_progress = 0.0
+        self._finger_count_start = None
+        self._last_stable_count = None
+        self._hold_frames = 0
+        self._short_fired = False
+        self._long_fired = False
         self._raw_count_buf.clear()
 
-    def _majority_count(self) -> int:
+    def _majority_count(self):
+        # type: () -> int
         """Return the count that appears >= 3 times in the last 5 frames, else -1."""
         buf = list(self._raw_count_buf)
         if len(buf) < 3:
@@ -147,28 +141,18 @@ class GestureDetector:
                 return candidate
         return -1
 
-    def _count_extended_fingers(self, landmarks, handedness: str) -> int:
-        H = self.mp_hands.HandLandmark
-
-        # ── Four fingers: tip above PIP AND tip above MCP ─────────────────
-        finger_info = [
-            (H.INDEX_FINGER_TIP,  H.INDEX_FINGER_PIP,  H.INDEX_FINGER_MCP),
-            (H.MIDDLE_FINGER_TIP, H.MIDDLE_FINGER_PIP, H.MIDDLE_FINGER_MCP),
-            (H.RING_FINGER_TIP,   H.RING_FINGER_PIP,   H.RING_FINGER_MCP),
-            (H.PINKY_TIP,         H.PINKY_PIP,         H.PINKY_MCP),
-        ]
-
+    def _count_extended_fingers(self, landmarks, handedness):
+        # type: (list, str) -> int
         count = 0
-        for tip_idx, pip_idx, mcp_idx in finger_info:
+        for tip_idx, pip_idx, mcp_idx in _FINGER_JOINTS:
             tip_y = landmarks[tip_idx].y
             pip_y = landmarks[pip_idx].y
             mcp_y = landmarks[mcp_idx].y
             if (pip_y - tip_y) > FINGER_EXTENSION_THRESHOLD and tip_y < mcp_y:
                 count += 1
 
-        # ── Thumb: X-axis, handedness-aware ──────────────────────────────
-        thumb_tip = landmarks[H.THUMB_TIP]
-        thumb_cmc = landmarks[H.THUMB_CMC]
+        thumb_tip = landmarks[_THUMB_TIP]
+        thumb_cmc = landmarks[_THUMB_CMC]
 
         if handedness == "Right":
             thumb_extended = thumb_tip.x < (thumb_cmc.x - 0.04)
@@ -180,22 +164,17 @@ class GestureDetector:
 
         return count
 
-    def _detect_finger_hold(self, stable_count: int, now: float) -> str | None:
-        """
-        Fire "fingers_N" once when the stable count has been held for
-        finger_hold_seconds and debounce_frames frames.
-        Updates self.hold_progress every call.
-        """
+    def _detect_finger_hold(self, stable_count, now):
+        # type: (int, float) -> Optional[str]
         if stable_count < 0:
             self.hold_progress = 0.0
             return None
 
         if stable_count != self._last_stable_count:
-            # Pose changed — restart window
-            self._last_stable_count  = stable_count
+            self._last_stable_count = stable_count
             self._finger_count_start = now
-            self._hold_frames        = 0
-            self.hold_progress       = 0.0
+            self._hold_frames = 0
+            self.hold_progress = 0.0
             return None
 
         self._hold_frames += 1
@@ -203,12 +182,11 @@ class GestureDetector:
         self.hold_progress = min(1.0, held / self.finger_hold_seconds)
 
         frames_ok = self._hold_frames >= self.finger_debounce_frames
-        time_ok   = held >= self.finger_hold_seconds
+        time_ok = held >= self.finger_hold_seconds
 
         if time_ok and frames_ok and stable_count in (1, 2, 3, 4, 5):
-            # Advance start so it doesn't re-fire every frame
             self._finger_count_start = now + self.finger_hold_seconds
-            self._hold_frames        = 0
-            return f"fingers_{stable_count}"
+            self._hold_frames = 0
+            return "fingers_{}".format(stable_count)
 
         return None

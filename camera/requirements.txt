@@ -1,20 +1,15 @@
-opencv-python>=4.8
-mediapipe==0.10.14
-protobuf>=4.25.3,<5
-insightface>=0.7.3
-onnxruntime-gpu>=1.17.0
-ultralytics>=8.3.0
-numpy>=1.24,<2.0
-requests>=2.31
-Pillow>=10.0
-setuptools<81
+# Jetson Nano (JetPack 4.6.x, Python 3.6, Ubuntu 18.04)
+#
+# DO NOT pip install:
+#   opencv-python  → sudo apt install python3-opencv
+#   mediapipe      → PINTO0309 prebuilt wheel (see setup.sh)
+#   insightface    → replaced with OpenCV Haar + ONNX
+#   nvidia-*-cu12  → x86-only, JetPack provides CUDA system-wide
+#
+# onnxruntime is installed separately in setup.sh (may fail on ARM64 pip)
+
+numpy>=1.19,<1.25
+requests>=2.25
+Pillow>=8.0
 tqdm>=4.0
-python-dotenv>=1.0
-# CUDA runtime libs (needed when CUDA toolkit not system-installed)
-nvidia-cublas-cu12
-nvidia-cuda-runtime-cu12
-nvidia-curand-cu12
-nvidia-cudnn-cu12
-nvidia-cufft-cu12
-nvidia-cusparse-cu12
-nvidia-cusolver-cu12
+python-dotenv>=0.19

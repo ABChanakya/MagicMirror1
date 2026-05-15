@@ -23,6 +23,7 @@ import time
 from collections import deque
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, HTTPServer
+from typing import Optional
 
 import cv2
 import numpy as np
@@ -423,7 +424,7 @@ def main():
     # Sticky display
     hand_lost_frames   = 0
     disp_landmarks     = None
-    hand_gone_since: float | None = None
+    hand_gone_since = None  # type: Optional[float]
 
     # Gesture state machine
     gesture_state      = IDLE

@@ -5,6 +5,8 @@ Posts camera events to MMM-CameraBridge's local HTTP server.
 
 import json
 import logging
+from typing import Optional
+
 import requests
 
 logger = logging.getLogger(__name__)
@@ -31,7 +33,8 @@ class HttpSender:
         """POST a single event dict. Returns True on success."""
         return self._post(self.url, event, timeout_s=1.0)
 
-    def send_gesture(self, name: str | None):
+    def send_gesture(self, name):
+        # type: (Optional[str]) -> bool
         if name is None:
             return True  # hand gone — nothing to send, state cleared by main.py
         return self.send({"type": "gesture", "name": name})
