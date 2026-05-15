@@ -16,7 +16,7 @@ echo "pip:    $(pip3 --version 2>&1)"
 echo ""
 
 # ── 1. System packages ──────────────────────────────────────────────────────
-echo "[1/4] System packages..."
+echo "[1/5] System packages..."
 sudo apt-get update -qq
 sudo apt-get install -y \
     python3-opencv \
@@ -24,14 +24,17 @@ sudo apt-get install -y \
     python3-pil \
     libatlas-base-dev \
     libopenblas-dev \
+    cmake \
+    libboost-python-dev \
+    libboost-thread-dev \
     git wget
 
 # ── 2. Pure-Python pip packages ─────────────────────────────────────────────
-echo "[2/4] pip packages..."
+echo "[2/5] pip packages..."
 pip3 install --user -r "$CAMERA_DIR/requirements.txt"
 
 # ── 3. MediaPipe for Jetson Nano (PINTO0309 prebuilt wheel) ─────────────────
-echo "[3/4] MediaPipe..."
+echo "[3/5] MediaPipe..."
 if python3 -c "import mediapipe" 2>/dev/null; then
     echo "  MediaPipe already installed."
 else
@@ -48,49 +51,37 @@ else
     echo "  MediaPipe installed."
 fi
 
-# ── 4. ONNX Runtime (CPU, needed for face recognition) ──────────────────────
-echo "[4/4] ONNX Runtime..."
-if python3 -c "import onnxruntime" 2>/dev/null; then
-    echo "  onnxruntime already installed."
+# ── 4. dlib + face_recognition (replaces ONNX Runtime) ─────────────────────
+# dlib 19.21.1 is the last version supporting Python 3.6.
+# It compiles from source — this takes ~30 minutes on Jetson Nano.
+echo "[4/5] dlib + face_recognition..."
+if python3 -c "import face_recognition" 2>/dev/null; then
+    echo "  face_recognition already installed."
 else
-    if pip3 install --user onnxruntime 2>/dev/null; then
-        echo "  onnxruntime installed via pip."
-    else
-        echo ""
-        echo "  WARNING: pip onnxruntime failed on this platform."
-        echo "  Face recognition will be disabled."
-        echo "  To enable, get the Jetson-compatible build from:"
-        echo "    https://elinux.org/Jetson_Zoo#ONNX_Runtime"
-        echo ""
-    fi
+    echo "  Installing dlib (compiles from source, ~30 min on Jetson Nano)..."
+    pip3 install --user dlib==19.21.1
+    pip3 install --user face_recognition==1.3.0
+    echo "  face_recognition installed."
 fi
 
-# ── Face embedding model (optional, enables face recognition) ────────────────
-mkdir -p "$MODEL_DIR"
-if [ ! -f "$MODEL_DIR/face_embedding.onnx" ]; then
-    echo ""
-    echo "========================================================"
-    echo "OPTIONAL: Face recognition setup"
-    echo ""
-    echo "To enable face recognition (identify people by name),"
-    echo "place a 112x112 ONNX face embedding model at:"
-    echo "  $MODEL_DIR/face_embedding.onnx"
-    echo ""
-    echo "Compatible models: MobileFaceNet, ArcFace-MobileNet"
-    echo "Example source: https://github.com/deepinsight/insightface"
-    echo "                (model zoo -> buffalo_sc -> det_500m.onnx is NOT this)"
-    echo "                Look for w600k_mbf.onnx or similar MobileFaceNet"
-    echo ""
-    echo "Without this file, the pipeline still detects PRESENCE"
-    echo "(someone is at the mirror) but cannot identify WHO."
-    echo "========================================================"
+# ── 5. WebSocket bridge package ─────────────────────────────────────────────
+echo "[5/5] websockets..."
+if python3 -c "import websockets" 2>/dev/null; then
+    echo "  websockets already installed."
+else
+    pip3 install --user 'websockets>=8.0,<10'
 fi
+
+# ── Model directory ──────────────────────────────────────────────────────────
+mkdir -p "$MODEL_DIR"
 
 echo ""
 echo "=== Setup complete ==="
 echo ""
-echo "To start camera pipeline:"
-echo "  bash run.sh --device /dev/video0 --bridge-port 8082 --debug"
+echo "Next steps:"
+echo "  1. Add face photos to camera/dataset/<your_name>/"
+echo "  2. Run: python3 train.py        (generates model/encodings.pkl)"
+echo "  3. Run: bash run.sh --device /dev/video0 --bridge-port 8082 --debug"
 echo ""
-echo "To train face recognition (after placing face_embedding.onnx):"
+echo "To train face recognition:"
 echo "  bash train.sh"

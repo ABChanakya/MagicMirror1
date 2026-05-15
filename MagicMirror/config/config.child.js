@@ -33,34 +33,26 @@ let config = {
     },
     {
       module: "MMM-SmartPresence",
-      position: "middle_center",
+      position: "fullscreen_above",
       classes: "fixed_page",
       config: {
         bridgeUrl: "ws://172.17.0.1:8084",
         greetingDuration: 8000,
         unknownName: "Gast",
-        gestureMap: {}
-      }
-    },
-    {
-      module: "MMM-CameraBridge",
-      classes: "fixed_page",
-      config: {
-        port: 8082,
         // Finger count → page (0-based):
         //   1 finger  = page 0  (Weather + Pokémon)
         //   2 fingers = page 1  (Quiz)
         //   3 fingers = page 2  (History + Facts)
         //   4 fingers = page 3  (Calendar + News)
         //   5 fingers / fist = home
-        fingerPageMap: {
-          fingers_1: 0,
-          fingers_2: 1,
-          fingers_3: 2,
-          fingers_4: 3,
-          fingers_5: 0,
-          fist:      0,
-        },
+        gestureMap: {
+          fingers_1: { notification: "PAGE_SELECT", payload: 0 },
+          fingers_2: { notification: "PAGE_SELECT", payload: 1 },
+          fingers_3: { notification: "PAGE_SELECT", payload: 2 },
+          fingers_4: { notification: "PAGE_SELECT", payload: 3 },
+          fingers_5: { notification: "PAGE_SELECT", payload: 0 },
+          fist:      { notification: "PAGE_SELECT", payload: 0 },
+        }
       }
     },
     {
