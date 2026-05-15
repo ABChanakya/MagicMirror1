@@ -89,11 +89,14 @@ Module.register("MMM-CameraBridge", {
         }
         break;
 
-      case "presence":
+      case "presence": {
+        const isPresent = event.state === "present";
+        document.body.classList.toggle("presence-away", !isPresent);
         if (this.config.dimOnAway) {
-          this.sendNotification("USER_PRESENCE", event.state === "present");
+          this.sendNotification("USER_PRESENCE", isPresent);
         }
         break;
+      }
     }
   },
 

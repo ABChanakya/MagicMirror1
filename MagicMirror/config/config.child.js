@@ -41,15 +41,14 @@ let config = {
         unknownName: "Gast",
         // Finger count → page (0-based):
         //   1 finger  = page 0  (Weather + Pokémon)
-        //   2 fingers = page 1  (Quiz)
-        //   3 fingers = page 2  (History + Facts)
-        //   4 fingers = page 3  (Calendar + News)
-        //   5 fingers / fist = home
+        //   2 fingers = page 1  (History + Facts)
+        //   3 fingers = page 2  (Calendar + News)
+        //   4+ fingers / fist = home
         gestureMap: {
           fingers_1: { notification: "PAGE_SELECT", payload: 0 },
           fingers_2: { notification: "PAGE_SELECT", payload: 1 },
           fingers_3: { notification: "PAGE_SELECT", payload: 2 },
-          fingers_4: { notification: "PAGE_SELECT", payload: 3 },
+          fingers_4: { notification: "PAGE_SELECT", payload: 0 },
           fingers_5: { notification: "PAGE_SELECT", payload: 0 },
           fist:      { notification: "PAGE_SELECT", payload: 0 },
         }
@@ -60,7 +59,7 @@ let config = {
       position: "bottom_center",
       classes: "fixed_page portrait-indicator",
       config: {
-        pages: 4,
+        pages: 3,
         activeBright: true,
         inactiveDimmed: true,
         inactiveHollow: true
@@ -73,20 +72,12 @@ let config = {
         modules: [
           ["page1"],
           ["page2"],
-          ["page3"],
-          ["page4"]
+          ["page3"]
         ],
         fixed: ["fixed_page"],
         animationTime: 800,
         homePage: 0,
-        rotationDelay: 30000,
-        timings: {
-          default: 24000,
-          0: 28000,
-          1: 24000,
-          2: 26000,
-          3: 28000
-        }
+        rotationDelay: 0
       }
     },
     {
@@ -146,22 +137,9 @@ let config = {
       }
     },
     {
-      module: "MMM-Quiz",
-      position: "middle_center",
-      classes: "page2 portrait-card portrait-center-stack portrait-quiz",
-      header: "Quiz",
-      config: {
-        maxWidth: "100%",
-        align: "center",
-        questionsFile: "config/quiz.de.json",
-        loadingText: "Quiz wird geladen ...",
-        errorText: "Quizdaten konnten nicht geladen werden."
-      }
-    },
-    {
       module: "MMM-OnThisDay",
       position: "middle_center",
-      classes: "page3 portrait-card portrait-center-stack portrait-text-stack portrait-history",
+      classes: "page2 portrait-card portrait-center-stack portrait-text-stack portrait-history",
       header: "Heute in der Geschichte",
       config: {
         wikipedia: true,
@@ -173,7 +151,7 @@ let config = {
     {
       module: "MMM-Facts",
       position: "middle_center",
-      classes: "page3 portrait-card portrait-center-stack portrait-text-stack portrait-facts",
+      classes: "page2 portrait-card portrait-center-stack portrait-text-stack portrait-facts",
       header: "Wusstest du schon?",
       config: {
         updateInterval: 10,
@@ -203,7 +181,7 @@ let config = {
     {
       module: "calendar",
       position: "upper_third",
-      classes: "page4 portrait-card portrait-calendar",
+      classes: "page3 portrait-card portrait-calendar",
       header: "Kalender",
       config: {
         calendars: [
@@ -217,7 +195,7 @@ let config = {
     {
       module: "weather",
       position: "middle_center",
-      classes: "page4 portrait-card portrait-forecast",
+      classes: "page3 portrait-card portrait-forecast",
       header: "Vorhersage",
       config: {
         weatherProvider: "openmeteo",
@@ -229,7 +207,7 @@ let config = {
     {
       module: "newsfeed",
       position: "lower_third",
-      classes: "page4 portrait-card portrait-news",
+      classes: "page3 portrait-card portrait-news",
       header: "Nachrichten",
       config: {
         feeds: [
