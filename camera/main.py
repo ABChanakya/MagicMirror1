@@ -31,6 +31,7 @@ import numpy as np
 from face_recognizer import FaceRecognizer
 from gesture_detector import GestureDetector
 from http_sender import HttpSender
+from ws_bridge import WsBridge
 
 logging.basicConfig(
     level=logging.INFO,
@@ -52,6 +53,7 @@ HAND_FLICKER_TOLERANCE = int(os.getenv("HAND_FLICKER_FRAMES",    "3"))
 HAND_GONE_GRACE       = float(os.getenv("HAND_GONE_GRACE",       "0.5"))
 MIRROR_FLIP           = os.getenv("MIRROR_FLIP", "false").strip().lower() in ("1", "true", "yes")
 DEBUG_PORT            = int(os.getenv("DEBUG_PORT",              "8083"))
+WS_PORT               = int(os.getenv("WS_PORT",                "8084"))
 
 # ── Debug server state ────────────────────────────────────────────────────────
 
@@ -268,9 +270,9 @@ def annotate_frame(
     frame_bgr: np.ndarray,
     disp_landmarks,
     hold_progress: float,
-    current_gesture_state: str | None,
-    faces: list,
-    sent_gesture_state: str | None,
+    current_gesture_state,
+    faces,
+    sent_gesture_state,
     fps: float,
 ) -> np.ndarray:
     """Draw all overlays onto a copy of frame_bgr and return it."""
@@ -394,6 +396,9 @@ def main():
 
     _start_debug_server(DEBUG_PORT)
 
+    bridge = WsBridge(port=WS_PORT)
+    bridge.start()
+
     cap               = open_camera(args.device)
     shutdown_flag     = threading.Event()
     executor          = ThreadPoolExecutor(max_workers=1)
@@ -429,7 +434,7 @@ def main():
     # Gesture state machine
     gesture_state      = IDLE
     sent_gesture_state = None
-    current_gesture_label: str | None = None
+    current_gesture_label = None
 
     # Read-failure counter for auto-reconnect
     read_fail_count    = 0
@@ -537,6 +542,10 @@ def main():
                         if new_state:
                             sender.send_gesture(new_state)
                             _inc("gestures_fired")
+                            bridge.broadcast({
+                                "type": "GESTURE_EVENT",
+                                "payload": {"gesture": new_state, "confirmed": True},
+                            })
 
             elif gesture_state == LOCKED:
                 if not hand_present:
@@ -592,6 +601,25 @@ def main():
                     presence = True
                     logger.info("Presence: present")
                     sender.send_presence("present")
+                    bridge.broadcast({
+                        "type": "PRESENCE_UPDATE",
+                        "payload": {
+                            "present": True,
+                            "count": len(faces),
+                            "faces": [{"name": f.get("profile", "Unknown"),
+                                       "confidence": float(f.get("confidence", 0.0))}
+                                      for f in faces],
+                        },
+                    })
+                    def _greet(bridge=bridge):
+                        time.sleep(1.0)
+                        snap = list(cached_faces)
+                        names = [f.get("profile", "Unknown") for f in snap] or ["Unknown"]
+                        bridge.broadcast({
+                            "type": "GREETING",
+                            "payload": {"names": names, "count": len(names)},
+                        })
+                    threading.Thread(target=_greet, daemon=True).start()
 
                 best = max(faces, key=lambda f: f["confidence"])
                 best_profile    = best["profile"]
@@ -617,6 +645,10 @@ def main():
                     face_confirmed = False
                     logger.info("Presence: away (%.1fs)", away_for)
                     sender.send_presence("away")
+                    bridge.broadcast({
+                        "type": "PRESENCE_UPDATE",
+                        "payload": {"present": False, "count": 0, "faces": []},
+                    })
 
             # ── Annotate + push debug JPEG + state ───────────────────────
             annotated = annotate_frame(

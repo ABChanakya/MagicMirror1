@@ -1,0 +1,28 @@
+# MagicMirror3 camera pipeline — systemd service for Jetson Nano
+#
+# Install on the Jetson Nano:
+#   sudo cp magicmirror-camera.service /etc/systemd/system/
+#   sudo systemctl daemon-reload
+#   sudo systemctl enable magicmirror-camera
+#   sudo systemctl start magicmirror-camera
+#
+# Logs:
+#   journalctl -u magicmirror-camera -f
+
+[Unit]
+Description=MagicMirror3 Camera Pipeline
+After=network.target docker.service
+Wants=docker.service
+
+[Service]
+Type=simple
+User=nvidia
+WorkingDirectory=/home/nvidia/MagicMirror1/camera
+ExecStart=/bin/bash /home/nvidia/MagicMirror1/camera/run.sh --device /dev/video0 --bridge-port 8082
+Restart=always
+RestartSec=5
+StandardOutput=append:/home/nvidia/MagicMirror1/logs/camera.log
+StandardError=append:/home/nvidia/MagicMirror1/logs/camera.log
+
+[Install]
+WantedBy=multi-user.target

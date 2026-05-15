@@ -22,6 +22,14 @@ let config = {
       module: "alert"
     },
     {
+      module: "MMM-CameraBridge",
+      config: {
+        port: 8082,
+        fingerPageMap: {},
+        dimOnAway: true,
+      }
+    },
+    {
       module: "updatenotification",
       position: "top_bar"
     },

@@ -9,6 +9,7 @@
 # onnxruntime is installed separately in setup.sh (may fail on ARM64 pip)
 
 numpy>=1.19,<1.25
+websockets>=8.0,<10
 requests>=2.25
 Pillow>=8.0
 tqdm>=4.0

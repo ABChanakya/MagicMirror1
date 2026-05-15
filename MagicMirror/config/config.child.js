@@ -32,6 +32,17 @@ let config = {
       }
     },
     {
+      module: "MMM-SmartPresence",
+      position: "middle_center",
+      classes: "fixed_page",
+      config: {
+        bridgeUrl: "ws://172.17.0.1:8084",
+        greetingDuration: 8000,
+        unknownName: "Gast",
+        gestureMap: {}
+      }
+    },
+    {
       module: "MMM-CameraBridge",
       classes: "fixed_page",
       config: {

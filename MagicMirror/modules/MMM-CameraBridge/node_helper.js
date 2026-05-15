@@ -147,9 +147,9 @@ module.exports = NodeHelper.create({
       });
     });
 
-    this.server.listen(port, "127.0.0.1", () => {
-      console.log(`MMM-CameraBridge: listening on http://127.0.0.1:${port}/camera-event`);
-      console.log(`MMM-CameraBridge: debug view http://127.0.0.1:${port}/camera-view`);
+    this.server.listen(port, "0.0.0.0", () => {
+      console.log(`MMM-CameraBridge: listening on http://0.0.0.0:${port}/camera-event`);
+      console.log(`MMM-CameraBridge: debug view http://0.0.0.0:${port}/camera-view`);
     });
 
     this.server.on("error", err => {
