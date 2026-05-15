@@ -2,8 +2,13 @@
 gesture_detector.py
 Finger-count gesture detection using MediaPipe Hands.
 
-Recognised gestures: fingers_1 … fingers_5
-hold_progress (0.0–1.0) is updated every frame and exposed for the UI progress bar.
+Recognised gestures:
+  fingers_1 … fingers_5       short hold (FINGER_HOLD_SECONDS, default 0.5s)
+  fingers_1_long … fingers_5_long  long hold (FINGER_LONG_HOLD_SECONDS, default 2.0s)
+
+hold_progress      (0.0–1.0) tracks progress toward short-hold threshold.
+long_hold_progress (0.0–1.0) tracks progress toward long-hold threshold.
+Both are updated every frame and exposed for the UI progress bar.
 """
 
 import logging
@@ -31,8 +36,9 @@ class GestureDetector:
         if finger_hold_seconds is None:
             finger_hold_seconds = float(os.getenv("FINGER_HOLD_SECONDS", "0.5"))
 
-        self.finger_hold_seconds    = finger_hold_seconds
-        self.finger_debounce_frames = int(os.getenv("FINGER_DEBOUNCE_FRAMES", "3"))
+        self.finger_hold_seconds      = finger_hold_seconds
+        self.finger_long_hold_seconds = float(os.getenv("FINGER_LONG_HOLD_SECONDS", "2.0"))
+        self.finger_debounce_frames   = int(os.getenv("FINGER_DEBOUNCE_FRAMES", "3"))
 
         self.enabled            = True
         self.backend            = "mediapipe"
@@ -45,8 +51,8 @@ class GestureDetector:
         self._init_mediapipe()
 
         logger.info(
-            "GestureDetector: hold=%.2fs  debounce=%d frames",
-            self.finger_hold_seconds, self.finger_debounce_frames,
+            "GestureDetector: hold=%.2fs  long_hold=%.2fs  debounce=%d frames",
+            self.finger_hold_seconds, self.finger_long_hold_seconds, self.finger_debounce_frames,
         )
 
         # Temporal smoothing — majority vote over last 5 raw counts
@@ -60,7 +66,10 @@ class GestureDetector:
         # Public attributes read by main.py every frame
         self.last_landmarks    = None
         self.last_finger_state: int | None = None   # stable finger count (0-5)
-        self.hold_progress: float = 0.0             # 0.0–1.0
+        self.hold_progress: float      = 0.0        # 0.0–1.0 toward short hold
+        self.long_hold_progress: float = 0.0        # 0.0–1.0 toward long hold
+        self._short_fired = False   # has short-hold fired for current stable count?
+        self._long_fired  = False   # has long-hold fired for current stable count?
 
     # ── Backend init ───────────────────────────────────────────────────────
 
@@ -120,9 +129,12 @@ class GestureDetector:
         self.last_landmarks        = None
         self.last_finger_state     = None
         self.hold_progress         = 0.0
+        self.long_hold_progress    = 0.0
         self._finger_count_start   = None
         self._last_stable_count    = None
         self._hold_frames          = 0
+        self._short_fired          = False
+        self._long_fired           = False
         self._raw_count_buf.clear()
 
     def _majority_count(self) -> int:

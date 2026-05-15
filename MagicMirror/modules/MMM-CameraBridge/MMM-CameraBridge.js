@@ -30,7 +30,17 @@ Module.register("MMM-CameraBridge", {
       mama:  3,   // Practical page
       papa:  3,
     },
-    // Gestures that navigate pages globally
+    // Map finger count to page index (0-based). Used outside quiz mode.
+    // fingers_5 / fist go to home (page 0) by default.
+    fingerPageMap: {
+      fingers_1: 0,
+      fingers_2: 1,
+      fingers_3: 2,
+      fingers_4: 3,
+      fingers_5: 0,
+      fist:      0,
+    },
+    // Gestures that navigate pages globally (swipe gestures — currently disabled)
     pageNextGesture: "swipe_left",
     pagePrevGesture: "swipe_right",
     pageHomeGesture: "swipe_down",
@@ -88,7 +98,7 @@ Module.register("MMM-CameraBridge", {
   },
 
   handleGesture(name) {
-    // In quiz mode, finger gestures map to answers
+    // Quiz mode: fingers_1–4 map to answers A–D
     if (this.quizMode) {
       const answerMap = { fingers_1: 0, fingers_2: 1, fingers_3: 2, fingers_4: 3 };
       if (answerMap[name] !== undefined) {
@@ -97,13 +107,21 @@ Module.register("MMM-CameraBridge", {
       }
     }
 
+    // Outside quiz mode: finger count navigates directly to a page
+    const page = this.config.fingerPageMap[name];
+    if (page !== undefined) {
+      Log.info("MMM-CameraBridge: finger gesture '" + name + "' → PAGE_SELECT " + page);
+      this.sendNotification("PAGE_SELECT", page);
+      return;
+    }
+
     // Swipe up = interact with current page (flip Pokemon, etc.)
     if (name === this.config.interactGesture) {
       this.sendNotification("POKEMON_FLIP");
       return;
     }
 
-    // Global page navigation
+    // Swipe gestures for page navigation (currently disabled at camera level)
     switch (name) {
       case this.config.pageNextGesture:
         this.sendNotification("PAGE_INCREMENT");

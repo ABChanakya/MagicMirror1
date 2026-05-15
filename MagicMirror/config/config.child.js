@@ -35,7 +35,21 @@ let config = {
       module: "MMM-CameraBridge",
       classes: "fixed_page",
       config: {
-        port: 8082
+        port: 8082,
+        // Finger count → page (0-based):
+        //   1 finger  = page 0  (Weather + Pokémon)
+        //   2 fingers = page 1  (Quiz)
+        //   3 fingers = page 2  (History + Facts)
+        //   4 fingers = page 3  (Calendar + News)
+        //   5 fingers / fist = home
+        fingerPageMap: {
+          fingers_1: 0,
+          fingers_2: 1,
+          fingers_3: 2,
+          fingers_4: 3,
+          fingers_5: 0,
+          fist:      0,
+        },
       }
     },
     {

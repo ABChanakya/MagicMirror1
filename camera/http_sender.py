@@ -31,7 +31,9 @@ class HttpSender:
         """POST a single event dict. Returns True on success."""
         return self._post(self.url, event, timeout_s=1.0)
 
-    def send_gesture(self, name: str):
+    def send_gesture(self, name: str | None):
+        if name is None:
+            return True  # hand gone — nothing to send, state cleared by main.py
         return self.send({"type": "gesture", "name": name})
 
     def send_face(self, profile: str, confidence: float = 1.0):
