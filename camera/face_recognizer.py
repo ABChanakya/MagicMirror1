@@ -1,174 +1,298 @@
 """
 face_recognizer.py
-Face detection and recognition for Jetson Nano.
+Crash-proof face recognition for Jetson Nano (OpenCV 3.2, Python 3.6).
 
-Primary:  face_recognition library (dlib-based, 128-dim embeddings)
-          pip3 install dlib==19.21.1 face_recognition==1.3.0
-          (dlib compiles from source — run setup.sh once)
+Detection: Haar cascade (cv2.CascadeClassifier).
+Recognition: cv2.face.createLBPHFaceRecognizer(), trained IN-MEMORY at startup
+from a pickle of raw face crops + labels. We never call .read() / .load() on
+a serialized LBPH .yml — both crash OpenCV 3.2 on this hardware.
 
-Fallback: OpenCV Haar cascade (system OpenCV 3.2) — presence detection only,
-          all faces reported as "unknown" if face_recognition is not installed.
-
-Python 3.6+ compatible — no walrus, no str|None, no match/case.
+Any failure (missing pickle, missing cv2.face, broken model, bad frame) falls
+back to presence-only mode and is logged. identify() never raises.
 """
 
 import logging
 import os
 import pickle
 from pathlib import Path
+from typing import Any, Dict, List, Optional, Tuple
 
 import cv2
 import numpy as np
 
 logger = logging.getLogger(__name__)
 
-MODEL_PATH = Path(__file__).parent / "model" / "encodings.pkl"
+MODEL_DIR        = Path(__file__).parent / "model"
+FACE_DATA_PATH   = MODEL_DIR / "face_data.pkl"
+
+FACE_SIZE            = (100, 100)
+UNKNOWN_LABEL        = "unknown"
+DEFAULT_THRESHOLD    = 0.4
+LBPH_DISTANCE_SCALE  = 200.0
 
 
-def _find_haar_cascade():
-    # type: () -> str
-    candidates = [
-        "/usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml",
+def _resolve_cascade_path():
+    # type: () -> Optional[str]
+    candidates = []  # type: List[str]
+    data_dir = getattr(getattr(cv2, "data", None), "haarcascades", None)
+    if data_dir:
+        candidates.append(os.path.join(data_dir, "haarcascade_frontalface_default.xml"))
+    candidates.extend([
         "/usr/share/opencv4/haarcascades/haarcascade_frontalface_default.xml",
-        "/usr/share/opencv-3.2/haarcascades/haarcascade_frontalface_default.xml",
+        "/usr/share/opencv/haarcascades/haarcascade_frontalface_default.xml",
         "/usr/local/share/opencv4/haarcascades/haarcascade_frontalface_default.xml",
-    ]
-    try:
-        candidates.insert(0, cv2.data.haarcascades + "haarcascade_frontalface_default.xml")
-    except AttributeError:
-        pass
+        "/usr/local/share/OpenCV/haarcascades/haarcascade_frontalface_default.xml",
+    ])
     for path in candidates:
-        if os.path.exists(path):
+        if path and os.path.isfile(path):
             return path
-    return ""
+    return None
+
+
+def _lbph_factory():
+    # type: () -> Optional[Any]
+    """Return an LBPH constructor that works on OpenCV 3.2 (and 3.3+/4.x)."""
+    face_mod = getattr(cv2, "face", None)
+    if face_mod is None:
+        return None
+    for name in ("createLBPHFaceRecognizer", "LBPHFaceRecognizer_create"):
+        fn = getattr(face_mod, name, None)
+        if callable(fn):
+            return fn
+    return None
 
 
 class FaceRecognizer:
-    def __init__(self, model_path=MODEL_PATH, tolerance=0.55):
-        # tolerance: max Euclidean distance to accept a match (lower = stricter)
-        # face_recognition default is 0.6; 0.55 is slightly stricter
-        self.tolerance = tolerance
-        self.model_path = model_path
-        self.known_encodings = []
-        self.known_names = []
-        self._fr = None          # face_recognition module, or None if unavailable
-        self._detector = None    # Haar cascade fallback
+    def __init__(self,
+                 model_path=FACE_DATA_PATH,
+                 tolerance=DEFAULT_THRESHOLD):
+        # `model_path` keeps the old positional name but now points at face_data.pkl.
+        # `tolerance` is treated as the minimum confidence (0-1) to accept a match.
+        self.min_confidence = float(tolerance) if tolerance is not None else DEFAULT_THRESHOLD
+        self.face_data_path = Path(model_path) if model_path is not None else FACE_DATA_PATH
 
-        self._init_face_recognition()
-        self._load_model(model_path)
+        self._recognizer = None       # type: Optional[Any]
+        self._label_map  = {}         # type: Dict[int, str]
+        self._detector   = None       # type: Optional[cv2.CascadeClassifier]
 
-    # ── Setup ───────────────────────────────────────────────────────────────
+        # ── detector ──────────────────────────────────────────────────────
+        cascade_path = _resolve_cascade_path()
+        if cascade_path is None:
+            logger.error("Haar cascade XML not found — face detection disabled.")
+        else:
+            try:
+                detector = cv2.CascadeClassifier(cascade_path)
+                if detector.empty():
+                    logger.error("Haar cascade at %s loaded empty — detection disabled.", cascade_path)
+                else:
+                    self._detector = detector
+                    logger.info("Loaded Haar cascade from %s", cascade_path)
+            except cv2.error as exc:
+                logger.error("Failed to construct Haar cascade from %s: %s", cascade_path, exc)
 
-    def _init_face_recognition(self):
-        try:
-            import face_recognition
-            self._fr = face_recognition
-            logger.info("FaceRecognizer: face_recognition (dlib) ready")
-        except ImportError:
-            logger.warning("face_recognition not installed — falling back to Haar cascade")
-            logger.warning("To enable: pip3 install dlib==19.21.1 face_recognition==1.3.0")
-            self._init_haar_fallback()
+        # ── recognizer ────────────────────────────────────────────────────
+        self._load_recognizer()
 
-    def _init_haar_fallback(self):
-        cascade_path = _find_haar_cascade()
-        if not cascade_path:
-            logger.error("Haar cascade not found. Install: sudo apt install python3-opencv")
-            return
-        self._detector = cv2.CascadeClassifier(cascade_path)
-        logger.info("FaceRecognizer: Haar cascade fallback active (presence only)")
-
-    def _load_model(self, path):
-        if not path.exists():
-            logger.warning("No encodings at %s — run train.py first", path)
-            return
-        with open(str(path), "rb") as f:
-            data = pickle.load(f)
-        self.known_encodings = data["encodings"]
-        self.known_names = data["names"]
-        logger.info("Loaded %d encoding(s): profiles=%s",
-                    len(self.known_names), set(self.known_names))
-
-    # ── Public API ──────────────────────────────────────────────────────────
-
-    def identify(self, rgb_frame):
-        """
-        Detect faces and optionally identify them.
-        Returns list of {"profile": str, "confidence": float, "location": (top,right,bottom,left)}.
-        """
-        if self._fr is not None:
-            return self._identify_fr(rgb_frame)
-        if self._detector is not None:
-            return self._identify_haar(rgb_frame)
-        return []
+    # ── public API ──────────────────────────────────────────────────────────
 
     def reload(self):
-        """Hot-reload face encodings from disk."""
-        logger.info("Reloading face encodings from %s", self.model_path)
-        self.known_encodings = []
-        self.known_names = []
-        self._load_model(self.model_path)
+        # type: () -> None
+        """Reload training data from disk and retrain the recognizer in-memory."""
+        self._recognizer = None
+        self._label_map = {}
+        self._load_recognizer()
 
-    # ── face_recognition path ───────────────────────────────────────────────
+    def identify(self, rgb_frame):
+        # type: (np.ndarray) -> List[Dict[str, Any]]
+        """
+        Detect faces in an RGB frame and try to recognise them.
 
-    def _identify_fr(self, rgb_frame):
+        Returns a list of dicts:
+          {"profile": str, "confidence": float, "location": (top,right,bottom,left)}
+
+        profile == "unknown" when no model is trained, when recognition fails,
+        or when confidence is below the configured threshold.
+        Never raises — all errors are caught and logged.
+        """
         try:
-            locations = self._fr.face_locations(rgb_frame, model="hog")
-        except Exception as exc:
-            logger.debug("face_locations error: %s", exc)
+            return self._identify_unsafe(rgb_frame)
+        except Exception as exc:  # last-line-of-defence; identify() must never crash main
+            logger.exception("identify() failed unexpectedly: %s", exc)
             return []
 
-        if not locations:
+    # ── internals ───────────────────────────────────────────────────────────
+
+    def _identify_unsafe(self, rgb_frame):
+        # type: (np.ndarray) -> List[Dict[str, Any]]
+        if self._detector is None:
+            return []
+        if rgb_frame is None or not hasattr(rgb_frame, "size") or rgb_frame.size == 0:
             return []
 
-        output = []
+        try:
+            gray = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2GRAY)
+            gray = cv2.equalizeHist(gray)
+        except cv2.error as exc:
+            logger.warning("Color conversion failed: %s", exc)
+            return []
 
-        if self.known_encodings:
+        try:
+            detections = self._detector.detectMultiScale(
+                gray,
+                scaleFactor=1.15,
+                minNeighbors=4,
+                minSize=(30, 30),
+            )
+        except cv2.error as exc:
+            logger.warning("Face detection failed: %s", exc)
+            return []
+
+        results = []  # type: List[Dict[str, Any]]
+        for det in detections:
+            x, y, w, h = int(det[0]), int(det[1]), int(det[2]), int(det[3])
+            top, right, bottom, left = y, x + w, y + h, x
+            location = (top, right, bottom, left)
+
+            crop = gray[y:y + h, x:x + w]
+            if crop.size == 0:
+                continue
             try:
-                encodings = self._fr.face_encodings(rgb_frame, locations)
+                crop = cv2.resize(crop, FACE_SIZE)
+            except cv2.error as exc:
+                logger.warning("Face resize failed: %s", exc)
+                continue
+
+            if self._recognizer is None or not self._label_map:
+                results.append({
+                    "profile": UNKNOWN_LABEL,
+                    "confidence": 0.0,
+                    "location": location,
+                })
+                continue
+
+            try:
+                label, distance = self._recognizer.predict(crop)
+            except cv2.error as exc:
+                logger.warning("LBPH predict failed: %s", exc)
+                results.append({
+                    "profile": UNKNOWN_LABEL,
+                    "confidence": 0.0,
+                    "location": location,
+                })
+                continue
             except Exception as exc:
-                logger.debug("face_encodings error: %s", exc)
-                encodings = []
+                logger.warning("LBPH predict raised %s: %s", type(exc).__name__, exc)
+                results.append({
+                    "profile": UNKNOWN_LABEL,
+                    "confidence": 0.0,
+                    "location": location,
+                })
+                continue
 
-            known_np = [np.array(e) for e in self.known_encodings]
+            confidence = max(0.0, 1.0 - (float(distance) / LBPH_DISTANCE_SCALE))
+            profile = self._label_map.get(int(label), UNKNOWN_LABEL)
+            if confidence < self.min_confidence:
+                profile = UNKNOWN_LABEL
 
-            for location, encoding in zip(locations, encodings):
-                profile, confidence = self._match_fr(encoding, known_np)
-                output.append({"profile": profile, "confidence": confidence,
-                               "location": location})
+            results.append({
+                "profile": profile,
+                "confidence": confidence,
+                "location": location,
+            })
 
-            # Faces with no encoding (edge case)
-            for location in locations[len(encodings):]:
-                output.append({"profile": "unknown", "confidence": 0.0,
-                               "location": location})
-        else:
-            for location in locations:
-                output.append({"profile": "unknown", "confidence": 0.0,
-                               "location": location})
+        return results
 
-        return output
+    def _load_recognizer(self):
+        # type: () -> None
+        factory = _lbph_factory()
+        if factory is None:
+            logger.warning(
+                "cv2.face LBPH recognizer not available — running presence-only. "
+                "Install opencv-contrib or use a build with face module."
+            )
+            return
 
-    def _match_fr(self, encoding, known_np):
-        # type: (np.ndarray, list) -> tuple
-        distances = self._fr.face_distance(known_np, encoding)
-        best_idx = int(np.argmin(distances))
-        best_dist = float(distances[best_idx])
-        # Convert distance to a confidence-like score: 0.0 = no match, 1.0 = perfect
-        confidence = max(0.0, 1.0 - best_dist)
-        if best_dist <= self.tolerance:
-            return self.known_names[best_idx], confidence
-        return "unknown", confidence
+        if not self.face_data_path.exists():
+            logger.warning(
+                "No training data at %s — run train.py first. Presence-only mode.",
+                self.face_data_path,
+            )
+            return
 
-    # ── Haar cascade fallback path ──────────────────────────────────────────
+        try:
+            with open(str(self.face_data_path), "rb") as f:
+                data = pickle.load(f)
+        except (OSError, pickle.UnpicklingError, EOFError, ValueError) as exc:
+            logger.error("Failed to load training data from %s: %s", self.face_data_path, exc)
+            return
+        except Exception as exc:
+            logger.error("Unexpected error loading %s: %s", self.face_data_path, exc)
+            return
 
-    def _identify_haar(self, rgb_frame):
-        gray = cv2.cvtColor(rgb_frame, cv2.COLOR_RGB2GRAY)
-        rects = self._detector.detectMultiScale(
-            gray, scaleFactor=1.1, minNeighbors=5, minSize=(60, 60)
+        faces, labels, label_map = self._validate_data(data)
+        if faces is None:
+            return
+
+        try:
+            recognizer = factory()
+            recognizer.train(faces, np.asarray(labels, dtype=np.int32))
+        except cv2.error as exc:
+            logger.error("LBPH in-memory training failed: %s", exc)
+            return
+        except Exception as exc:
+            logger.error("Unexpected error training LBPH: %s", exc)
+            return
+
+        self._recognizer = recognizer
+        self._label_map  = label_map
+        logger.info(
+            "Trained LBPH in-memory from %d sample(s), %d profile(s): %s",
+            len(faces), len(label_map), sorted(label_map.values()),
         )
-        if len(rects) == 0:
-            return []
-        output = []
-        for (x, y, w, h) in rects:
-            location = (y, x + w, y + h, x)   # (top, right, bottom, left)
-            output.append({"profile": "unknown", "confidence": 0.0, "location": location})
-        return output
+
+    @staticmethod
+    def _validate_data(data):
+        # type: (Any) -> Tuple[Optional[List[np.ndarray]], Optional[List[int]], Dict[int, str]]
+        if not isinstance(data, dict):
+            logger.error("Training data must be a dict, got %s", type(data).__name__)
+            return None, None, {}
+
+        faces_raw  = data.get("faces")
+        labels_raw = data.get("labels")
+        label_map_raw = data.get("label_map")
+
+        if not faces_raw or not labels_raw or not label_map_raw:
+            logger.error("Training data missing one of: faces, labels, label_map")
+            return None, None, {}
+        if len(faces_raw) != len(labels_raw):
+            logger.error("faces (%d) and labels (%d) length mismatch", len(faces_raw), len(labels_raw))
+            return None, None, {}
+
+        faces = []  # type: List[np.ndarray]
+        for arr in faces_raw:
+            if not isinstance(arr, np.ndarray):
+                logger.error("Non-ndarray entry in faces; aborting load.")
+                return None, None, {}
+            if arr.dtype != np.uint8:
+                arr = arr.astype(np.uint8)
+            if arr.shape != FACE_SIZE:
+                try:
+                    arr = cv2.resize(arr, FACE_SIZE)
+                except cv2.error as exc:
+                    logger.error("Could not normalise face crop shape %s: %s", arr.shape, exc)
+                    return None, None, {}
+            faces.append(arr)
+
+        try:
+            labels = [int(v) for v in labels_raw]
+        except (TypeError, ValueError) as exc:
+            logger.error("Could not coerce labels to int: %s", exc)
+            return None, None, {}
+
+        try:
+            label_map = {int(k): str(v) for k, v in label_map_raw.items()}
+        except (AttributeError, TypeError, ValueError) as exc:
+            logger.error("Could not coerce label_map: %s", exc)
+            return None, None, {}
+
+        return faces, labels, label_map

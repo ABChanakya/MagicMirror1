@@ -407,7 +407,16 @@ def main():
         logger.info("Shutdown signal received.")
         shutdown_flag.set()
 
+    def _reload_face(*_):
+        logger.info("SIGHUP — reloading face recognizer from disk.")
+        try:
+            face_rec.reload()
+        except Exception as exc:
+            logger.error("Face reload failed: %s", exc)
+
     signal.signal(signal.SIGTERM, _shutdown)
+    if hasattr(signal, "SIGHUP"):
+        signal.signal(signal.SIGHUP, _reload_face)
 
     # ── Per-frame state ───────────────────────────────────────────────────
     presence           = False

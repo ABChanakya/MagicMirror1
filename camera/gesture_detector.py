@@ -184,9 +184,11 @@ class GestureDetector:
         frames_ok = self._hold_frames >= self.finger_debounce_frames
         time_ok = held >= self.finger_hold_seconds
 
-        if time_ok and frames_ok and stable_count in (1, 2, 3, 4, 5):
+        if time_ok and frames_ok and stable_count in (0, 1, 2, 3, 4, 5):
             self._finger_count_start = now + self.finger_hold_seconds
             self._hold_frames = 0
+            if stable_count == 0:
+                return "fist"
             return "fingers_{}".format(stable_count)
 
         return None
