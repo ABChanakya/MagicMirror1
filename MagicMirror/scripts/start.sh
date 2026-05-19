@@ -10,23 +10,17 @@ CAM_DIR="$ROOT/camera"
 LOGS_DIR="$ROOT/logs"
 mkdir -p "$LOGS_DIR"
 
-# ── Python venv setup (first run only) ─────────────────────────────────────
-VENV="$CAM_DIR/.venv"
-if [ ! -d "$VENV" ]; then
-  echo "[start] First run — setting up Python environment..."
-  python3 -m venv "$VENV"
-  "$VENV/bin/pip" install --quiet --upgrade pip
-  "$VENV/bin/pip" install --quiet -r "$CAM_DIR/requirements.txt"
-  echo "[start] Python environment ready."
-fi
-
 # ── Start camera pipeline in background ────────────────────────────────────
+# Uses bash run.sh which sets up critical env vars: MEDIAPIPE_DISABLE_GPU, OMP_NUM_THREADS, etc.
 echo "[start] Starting camera pipeline (background)..."
-nohup "$VENV/bin/python3" "$CAM_DIR/main.py" \
+cd "$CAM_DIR"
+nohup bash run.sh \
   --device "${CAMERA_DEVICE:-/dev/video0}" \
+  --bridge-port "${BRIDGE_PORT:-8082}" \
   > "$LOGS_DIR/camera.log" 2>&1 &
 echo $! > "$LOGS_DIR/camera.pid"
 echo "[start] Camera PID: $(cat $LOGS_DIR/camera.pid)"
+cd "$ROOT"
 
 # Kill camera on exit
 trap 'bash "$ROOT/scripts/stop.sh" 2>/dev/null || true' EXIT
