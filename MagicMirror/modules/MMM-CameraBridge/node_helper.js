@@ -10,6 +10,7 @@ module.exports = NodeHelper.create({
 
   start() {
     this.server = null;
+    this.startServer(8082);
     this.debugState = {
       updatedAt: null,
       presence: "away",
