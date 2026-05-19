@@ -26,10 +26,21 @@ Module.register("MMM-DailyPokemon", {
 
 	start: function() { //Setting up interval for refresh
 		var self = this;
+		this.showingFront = true;
 
 		setInterval(function() {
 			self.updateDom();
 		}, this.config.updateInterval);
+	},
+
+	notificationReceived: function(notification, payload) {
+		if (notification === "POKEMON_FLIP") {
+			this.showingFront = !this.showingFront;
+			var pokePic = document.getElementById("poke-pic");
+			if (pokePic && pokePic.dataset.back) {
+				pokePic.src = this.showingFront ? pokePic.dataset.front : pokePic.dataset.back;
+			}
+		}
 	},
 
 	getDom: function() { //Creating initial div
@@ -125,6 +136,7 @@ Module.register("MMM-DailyPokemon", {
 	},
 
 	createContent: function(data, wrapper) { //Creates the elements for display
+		this.showingFront = true; // Reset flip state when new Pokémon loads
 		var pokeWrapper = document.createElement("div");
 		pokeWrapper.id = "poke-info";
 		var flexWrapper = document.createElement("div");
@@ -162,6 +174,8 @@ Module.register("MMM-DailyPokemon", {
 		var pokePic = document.createElement("img");
 		pokePic.src = data.sprites.front_default;
 		pokePic.id = "poke-pic";
+		pokePic.dataset.front = data.sprites.front_default;
+		pokePic.dataset.back = data.sprites.back_default || data.sprites.front_default;
 		if(this.config.grayscale) {
 			pokePic.id = "poke-pic-grayscale";
 		}

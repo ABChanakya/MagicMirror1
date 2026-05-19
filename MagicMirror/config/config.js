@@ -30,6 +30,7 @@ let config = {
           fingers_2: 1,
           fingers_3: 2,
           fingers_4: 0,
+          fingers_5: 0,
           fist: 0,
         },
         dimOnAway: true,

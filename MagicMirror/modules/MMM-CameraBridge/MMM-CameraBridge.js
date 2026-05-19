@@ -110,13 +110,6 @@ Module.register("MMM-CameraBridge", {
       }
     }
 
-    // fingers_5 flips the card (interact with page content)
-    if (name === "fingers_5") {
-      Log.info("MMM-CameraBridge: fingers_5 → POKEMON_FLIP");
-      this.sendNotification("POKEMON_FLIP");
-      return;
-    }
-
     // Outside quiz mode: finger count navigates directly to a page
     const page = this.config.fingerPageMap[name];
     if (page !== undefined) {
