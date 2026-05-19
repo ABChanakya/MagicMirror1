@@ -80,8 +80,9 @@ class GestureDetector:
         self.hands = self.mp_hands.Hands(
             static_image_mode=False,
             max_num_hands=1,
-            min_detection_confidence=float(os.getenv("MP_HAND_DET_CONF", "0.3")),
-            min_tracking_confidence=float(os.getenv("MP_HAND_TRACK_CONF", "0.3")),
+            model_complexity=0,
+            min_detection_confidence=float(os.getenv("MP_HAND_DET_CONF", "0.5")),
+            min_tracking_confidence=float(os.getenv("MP_HAND_TRACK_CONF", "0.5")),
         )
         logger.info("Gesture backend: mediapipe")
 

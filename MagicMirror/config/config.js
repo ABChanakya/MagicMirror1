@@ -25,7 +25,14 @@ let config = {
       module: "MMM-CameraBridge",
       config: {
         port: 8082,
-        fingerPageMap: {},
+        fingerPageMap: {
+          fingers_1: 0,
+          fingers_2: 1,
+          fingers_3: 2,
+          fingers_4: 0,
+          fingers_5: 0,
+          fist: 0,
+        },
         dimOnAway: true,
       }
     },

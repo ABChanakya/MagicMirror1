@@ -20,4 +20,4 @@ EXPOSE 8080 8081 8082
 ENV MM_CONFIG_FILE=config/config.child.js \
     NODE_ENV=production
 
-CMD ["node", "serveronly"]
+CMD ["node", "--max-old-space-size=512", "serveronly"]
