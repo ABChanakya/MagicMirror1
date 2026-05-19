@@ -7,7 +7,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends git \
 WORKDIR /opt/magicmirror
 
 COPY package.json package-lock.json ./
-RUN npm install --omit=dev --no-audit --no-fund
+# Provide a dummy git config/repo so `git clean` doesn't crash during postinstall
+RUN git config --global user.email "docker@dummy.com" && \
+    git config --global user.name "Docker Dummy" && \
+    git init && \
+    npm install --omit=dev --no-audit --no-fund
 
 COPY . .
 
