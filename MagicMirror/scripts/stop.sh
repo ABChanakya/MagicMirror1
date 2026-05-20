@@ -2,7 +2,7 @@
 # stop.sh — Stop MagicMirror + camera pipeline
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 LOGS_DIR="$ROOT/logs"
 
 stop_pid() {

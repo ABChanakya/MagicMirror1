@@ -4,7 +4,7 @@
 # Camera runs in the background.
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MM_DIR="$ROOT/MagicMirror"
 CAM_DIR="$ROOT/camera"
 LOGS_DIR="$ROOT/logs"
@@ -23,7 +23,7 @@ echo "[start] Camera PID: $(cat $LOGS_DIR/camera.pid)"
 cd "$ROOT"
 
 # Kill camera on exit
-trap 'bash "$ROOT/scripts/stop.sh" 2>/dev/null || true' EXIT
+trap 'bash "$MM_DIR/scripts/stop.sh" 2>/dev/null || true' EXIT
 
 cd "$MM_DIR"
 
