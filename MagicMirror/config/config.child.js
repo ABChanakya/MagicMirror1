@@ -39,6 +39,7 @@ let config = {
           fingers_2: 2,
           fingers_3: 3,
           fingers_4: 4,
+          fingers_5: 5,
           fist: 0,
         }
       }
