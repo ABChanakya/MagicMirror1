@@ -1,0 +1,34 @@
+[Unit]
+Description=MagicMirror3 — Camera Pipeline + MagicMirror Display
+After=network-online.target docker.service
+Wants=network-online.target docker.service
+
+[Service]
+Type=simple
+User=nvidia
+WorkingDirectory=/home/nvidia/MagicMirror1
+
+# Set display for Jetson X11 session
+Environment="DISPLAY=:0"
+Environment="XAUTHORITY=/home/nvidia/.Xauthority"
+
+# Start the integrated script (starts camera + MagicMirror)
+ExecStart=/bin/bash /home/nvidia/MagicMirror1/MagicMirror/scripts/start.sh
+
+# Restart on failure
+Restart=always
+RestartSec=10
+StartLimitBurst=3
+StartLimitIntervalSec=60
+
+# Logging
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=magicmirror3
+
+# Resource limits (prevent OOM)
+MemoryLimit=1G
+OOMScoreAdjust=-500
+
+[Install]
+WantedBy=graphical.target
