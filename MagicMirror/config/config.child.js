@@ -71,16 +71,6 @@ let config = {
       }
     },
     {
-      module: "MMM-GestureVisualizer",
-      position: "bottom_bar",
-      classes: "fixed_page gesture-demo",
-      config: {
-        bridgeUrl: "http://127.0.0.1:8082",
-        showLabels: true,
-        highlightDuration: 800
-      }
-    },
-    {
       module: "MMM-page-indicator",
       position: "bottom_center",
       classes: "fixed_page",
