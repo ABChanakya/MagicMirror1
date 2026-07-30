@@ -6,3 +6,7 @@ env/
 MagicMirror/node_modules/
 node_modules/
 *.log
+# Recorded gesture clips — 190 MB+ of video, keep out of git
+camera/gesture_training_data/
+logs/
+training/

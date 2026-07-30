@@ -1,3 +1,8 @@
-checkpoints/best_model.pt
+# Trained weights and tuning artefacts — regenerate with train_landmark.py
+checkpoints/*.pt
 checkpoints/hparam_study.db
 checkpoints/training_log.json
+checkpoints/*.log.json
+
+# Preprocessed landmark cache — regenerate with preprocess_landmarks.py
+data/

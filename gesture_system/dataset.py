@@ -138,10 +138,25 @@ def _interpolate_missing_landmarks(lm_seq: np.ndarray) -> np.ndarray:
 
 def _normalise_landmarks(lm_seq: np.ndarray) -> np.ndarray:
     """
-    Normalise a (T, 63) landmark sequence:
-    1. Subtract wrist (landmark 0, i.e. indices [0,1,2]) from all landmarks.
-    2. Divide by the maximum pairwise distance across the entire clip
-       (computed on x,y only, ignoring z) so that the hand scale is 1.
+    Normalise a (T, 63) landmark sequence into a (T, 66) two-stream encoding.
+
+    Output layout per frame:
+      [0:63]  SHAPE      — 21 joints, wrist-relative, hand-scale normalised
+      [63:66] TRAJECTORY — wrist displacement from frame 0, in hand-size units
+
+    Why two streams: subtracting the wrist per frame (the shape stream) makes
+    hand pose translation-invariant, but it also sets the wrist to (0,0,0) in
+    every frame — which deletes the swipe entirely. swipe_left, swipe_right and
+    swipe_up all collapse to identical tensors. The trajectory stream carries
+    that displacement back, normalised by hand size so it does not depend on
+    how far the person stands from the camera or how big their hand is, and
+    measured relative to frame 0 so it does not depend on where in the frame
+    the gesture happened.
+
+    Layout note: the trajectory is stored contiguously as (x, y, z) at indices
+    63, 64, 65. Because 63 % 3 == 0, the `0::3` / `1::3` / `2::3` striding used
+    by horizontal_flip() and rotation() in augmentation.py picks up the
+    trajectory channels automatically. Do not reorder these three values.
     """
     lm_seq = lm_seq.copy()
     T = lm_seq.shape[0]
@@ -149,11 +164,15 @@ def _normalise_landmarks(lm_seq: np.ndarray) -> np.ndarray:
     # Reshape to (T, 21, 3) for easier indexing
     lm_3d = lm_seq.reshape(T, 21, 3)
 
-    # Step 1: subtract wrist (landmark 0)
+    # Keep the wrist track before it is subtracted away — this is the swipe signal
+    wrist_track = lm_3d[:, 0, :].copy()   # (T, 3)
+
+    # Step 1: subtract wrist (landmark 0) → translation-invariant hand shape
     wrist = lm_3d[:, 0:1, :]   # (T, 1, 3)
     lm_3d = lm_3d - wrist
 
-    # Step 2: compute max pairwise distance across the clip (x,y only)
+    # Step 2: compute max pairwise distance across the clip (x,y only).
+    # Measured on wrist-relative coords, so this is hand size, not swipe extent.
     xy = lm_3d[:, :, :2].reshape(-1, 2)  # (T*21, 2)
     # Use the range (max - min) along each axis as a proxy for max pairwise dist
     span_x = xy[:, 0].max() - xy[:, 0].min()
@@ -161,7 +180,12 @@ def _normalise_landmarks(lm_seq: np.ndarray) -> np.ndarray:
     scale  = max(float(max(span_x, span_y)), 1e-6)
     lm_3d  = lm_3d / scale
 
-    return lm_3d.reshape(T, 63).astype(np.float32)
+    # Step 3: wrist displacement from frame 0, in the same hand-size units
+    trajectory = (wrist_track - wrist_track[0:1]) / scale   # (T, 3)
+
+    return np.concatenate(
+        [lm_3d.reshape(T, 63), trajectory], axis=1
+    ).astype(np.float32)   # (T, 66)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

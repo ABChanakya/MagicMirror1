@@ -106,7 +106,7 @@ class GestureRecognitionModel(nn.Module):
         super().__init__()
 
         self.landmark_encoder = LandmarkTransformer(
-            input_dim=63,
+            input_dim=66,   # 63 hand-shape + 3 wrist-trajectory channels
             d_model=landmark_d_model,
             nhead=landmark_nhead,
             num_layers=landmark_num_layers,
@@ -189,3 +189,59 @@ class GestureRecognitionModel(nn.Module):
         lm_feat = self.landmark_encoder(landmarks)  # (B, 256)
         logits  = self.lm_only_head(lm_feat)
         return logits
+
+
+class LandmarkOnlyModel(nn.Module):
+    """
+    Lightweight landmark-only gesture model — no Video Swin branch.
+
+    Submodule names deliberately match GestureRecognitionModel
+    (`landmark_encoder`, `lm_only_head`) so a checkpoint trained here loads
+    straight into the full fusion model with strict=False, and vice versa.
+
+    Why this exists: swipe direction is fully determined by the wrist
+    trajectory, which MediaPipe already provides. Video Swin-B spends 88M
+    parameters re-deriving that from pixels, and in doing so keys on
+    appearance (lighting, background, clothing) that does not transfer to
+    new people. This model sees only geometry, so it cannot overfit to how
+    any particular person looks.
+    """
+
+    def __init__(
+        self,
+        landmark_d_model: int = 256,
+        landmark_nhead: int = 8,
+        landmark_num_layers: int = 6,
+        landmark_dim_feedforward: int = 1024,
+        landmark_dropout: float = 0.1,
+        head_hidden: int = 512,
+        head_dropout: float = 0.3,
+        num_classes: int = 5,
+        input_dim: int = 66,
+    ):
+        super().__init__()
+
+        self.landmark_encoder = LandmarkTransformer(
+            input_dim=input_dim,
+            d_model=landmark_d_model,
+            nhead=landmark_nhead,
+            num_layers=landmark_num_layers,
+            dim_feedforward=landmark_dim_feedforward,
+            dropout=landmark_dropout,
+        )
+
+        self.lm_only_head = LandmarkOnlyHead(
+            landmark_dim=landmark_d_model,
+            hidden_dim=head_hidden,
+            num_classes=num_classes,
+            dropout=head_dropout,
+        )
+
+    def forward(self, landmarks: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            landmarks: (B, 30, 66)
+        Returns:
+            logits: (B, num_classes)
+        """
+        return self.lm_only_head(self.landmark_encoder(landmarks))

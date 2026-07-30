@@ -1,7 +1,12 @@
 data:
   raw_dir: ../camera/gesture_training_data
-  processed_dir: /media/bhaskara/Volume/Data_Gesture/raw
-  augmented_dir: /media/bhaskara/Volume/Data_Gesture/augmented
+  # Landmark-only pipeline (recommended) writes a single ~4 MB cache here:
+  landmark_cache: data/landmarks.npz
+  # Below are only used by the legacy two-stream pipeline (train.py + Video
+  # Swin), which stores 30 frames per clip and needs tens of GB. Kept local so
+  # nothing depends on an external drive being mounted.
+  processed_dir: data/processed
+  augmented_dir: data/augmented
   num_frames: 30
   image_size: 112
   classes: [swipe_left, swipe_right, swipe_up, swipe_down, "null"]
@@ -30,9 +35,11 @@ model:
   fusion_dropout: 0.3
   num_classes: 5
 
+# Legacy two-stream training (train.py). The landmark-only pipeline
+# (train_landmark.py) takes its settings from CLI flags instead.
 training:
   batch_size: 16
-  phase1_epochs: 0
+  phase1_epochs: 20
   phase2_epochs: 5
   phase3_epochs: 0
   phase1_lr: 0.0001
@@ -49,3 +56,8 @@ inference:
   consecutive_predictions_required: 1
   inference_every_n_frames: 1
   cooldown_frames: 30
+  # Fraction of the 30-frame window that must contain a detected hand before
+  # the model's prediction is trusted. Below this the window is reported as
+  # `null` without running the model — otherwise an empty room produces
+  # confident-looking garbage, since all-zero input is out of distribution.
+  min_hand_frames_frac: 0.5

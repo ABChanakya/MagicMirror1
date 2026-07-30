@@ -27,6 +27,10 @@ import torch.nn.functional as F
 import torchvision.transforms.functional as TF
 import yaml
 
+# Single source of truth for landmark encoding — shared with training so the
+# two can never drift apart.
+from dataset import _interpolate_missing_landmarks, _normalise_landmarks
+
 try:
     import mediapipe as mp
     _MP_AVAILABLE = True
@@ -136,28 +140,29 @@ def _preprocess_frame(frame_rgb: np.ndarray, image_size: int = 224) -> torch.Ten
 
 def _normalise_landmark_window(lm_window: np.ndarray) -> np.ndarray:
     """
-    lm_window: (30, 63)
-    Returns normalised (30, 63): wrist-centred + scale-normalised.
-    Zero frames (no hand) are left as zero.
+    lm_window: (30, 63) raw MediaPipe coords, zero rows where no hand was found.
+    Returns: (30, 66) — the exact same encoding training uses.
+
+    This delegates to dataset._normalise_landmarks rather than reimplementing
+    it. An earlier duplicate here silently drifted from the training version,
+    which is the sort of train/inference mismatch that is invisible until
+    accuracy is inexplicably bad. One definition, imported in both places.
+
+    Frames with no detection are filled by interpolation first (the same helper
+    preprocessing uses), because the normaliser needs a real wrist position in
+    frame 0 to anchor the trajectory against.
     """
-    lm_3d = lm_window.reshape(30, 21, 3).copy()
+    lm = lm_window.astype(np.float32).copy()
 
-    # Skip normalisation for all-zero frames (no hand)
-    non_zero_mask = (np.abs(lm_3d).sum(axis=(1, 2)) > 1e-8)  # (30,)
+    # Mark undetected frames as NaN so the shared interpolator can fill them
+    missing = np.abs(lm).sum(axis=1) <= 1e-8
+    if missing.all():
+        # No hand anywhere in the window — nothing meaningful to normalise
+        return np.zeros((lm.shape[0], 66), dtype=np.float32)
+    lm[missing] = np.nan
 
-    if non_zero_mask.any():
-        # Subtract wrist from non-zero frames
-        wrist = lm_3d[:, 0:1, :]
-        lm_3d[non_zero_mask] -= wrist[non_zero_mask]
-
-        # Scale by overall hand extent
-        xy = lm_3d[non_zero_mask, :, :2].reshape(-1, 2)
-        span_x = xy[:, 0].max() - xy[:, 0].min()
-        span_y = xy[:, 1].max() - xy[:, 1].min()
-        scale  = max(float(max(span_x, span_y)), 1e-6)
-        lm_3d[non_zero_mask] /= scale
-
-    return lm_3d.reshape(30, 63).astype(np.float32)
+    lm = _interpolate_missing_landmarks(lm)
+    return _normalise_landmarks(lm)
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -251,7 +256,7 @@ def run_inference(args):
     data_cfg  = cfg['data']
     model_cfg = cfg['model']
 
-    classes             = data_cfg['classes']
+    classes             = [str(c) for c in data_cfg['classes']]
     num_classes         = model_cfg['num_classes']
     image_size          = data_cfg['image_size']
     num_frames          = data_cfg['num_frames']
@@ -260,36 +265,69 @@ def run_inference(args):
     infer_every_n       = inf_cfg['inference_every_n_frames']
     COOLDOWN            = inf_cfg['cooldown_frames']
 
+    # Index of the "no gesture" class, used by the hand-presence gate below.
+    void_index = classes.index('null') if 'null' in classes else num_classes - 1
+
+    # A window needs at least this many frames with a detected hand before the
+    # model's output is trusted. Anything less is reported as `null`.
+    min_hand_frames = int(round(num_frames * inf_cfg.get('min_hand_frames_frac', 0.5)))
+
     # ── Device ────────────────────────────────────────────────────────────────
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"[inference] Device: {device}")
 
     # ── Model ─────────────────────────────────────────────────────────────────
-    from models.fusion_head import GestureRecognitionModel
-
-    model = GestureRecognitionModel(
-        landmark_d_model=model_cfg['landmark_d_model'],
-        landmark_nhead=model_cfg['landmark_nhead'],
-        landmark_num_layers=model_cfg['landmark_num_layers'],
-        landmark_dim_feedforward=model_cfg['landmark_dim_feedforward'],
-        landmark_dropout=model_cfg['landmark_dropout'],
-        fusion_hidden=model_cfg['fusion_hidden'],
-        fusion_dropout=model_cfg['fusion_dropout'],
-        num_classes=num_classes,
-        pretrained_swin=False,  # weights loaded from checkpoint
-    ).to(device)
-
+    ckpt = None
     if args.model_path:
         model_path = Path(args.model_path)
         if model_path.exists():
-            ckpt = torch.load(str(model_path), map_location=device)
-            state = ckpt.get('model_state_dict', ckpt)
-            model.load_state_dict(state)
-            print(f"[inference] Loaded model from {model_path}")
+            ckpt = torch.load(str(model_path), map_location=device, weights_only=False)
         else:
             print(f"[inference] Warning: {model_path} not found — using random weights")
+
+    if args.landmark_only:
+        # Light path: landmark encoder + head only. Video Swin is never built,
+        # so startup is instant and there is no 88M-param backbone to run.
+        from models.fusion_head import LandmarkOnlyModel
+
+        hp = (ckpt or {}).get('hparams') or {
+            'landmark_d_model':         model_cfg['landmark_d_model'],
+            'landmark_nhead':           model_cfg['landmark_nhead'],
+            'landmark_num_layers':      model_cfg['landmark_num_layers'],
+            'landmark_dim_feedforward': model_cfg['landmark_dim_feedforward'],
+            'landmark_dropout':         model_cfg['landmark_dropout'],
+            'head_hidden':              model_cfg['fusion_hidden'],
+            'head_dropout':             model_cfg['fusion_dropout'],
+        }
+        model = LandmarkOnlyModel(num_classes=num_classes, input_dim=66, **hp).to(device)
+        if ckpt is not None:
+            # strict=False so a full fusion checkpoint also loads here — only the
+            # landmark_encoder / lm_only_head keys are needed.
+            missing, unexpected = model.load_state_dict(
+                ckpt.get('model_state_dict', ckpt), strict=False
+            )
+            if missing:
+                print(f"[inference] WARNING: {len(missing)} missing keys, e.g. {missing[:3]}")
+            print(f"[inference] Loaded landmark-only weights from {args.model_path}")
+            if 'test_acc' in ckpt:
+                print(f"[inference] checkpoint test acc: {ckpt['test_acc']*100:.1f}%")
     else:
-        print("[inference] No model path provided — using random weights")
+        from models.fusion_head import GestureRecognitionModel
+
+        model = GestureRecognitionModel(
+            landmark_d_model=model_cfg['landmark_d_model'],
+            landmark_nhead=model_cfg['landmark_nhead'],
+            landmark_num_layers=model_cfg['landmark_num_layers'],
+            landmark_dim_feedforward=model_cfg['landmark_dim_feedforward'],
+            landmark_dropout=model_cfg['landmark_dropout'],
+            fusion_hidden=model_cfg['fusion_hidden'],
+            fusion_dropout=model_cfg['fusion_dropout'],
+            num_classes=num_classes,
+            pretrained_swin=False,  # weights loaded from checkpoint
+        ).to(device)
+        if ckpt is not None:
+            model.load_state_dict(ckpt.get('model_state_dict', ckpt))
+            print(f"[inference] Loaded model from {args.model_path}")
 
     model.eval()
 
@@ -340,7 +378,10 @@ def run_inference(args):
             mp_results  = None
 
         # ── Pre-process frame ─────────────────────────────────────────────
-        frame_tensor = _preprocess_frame(frame_rgb, image_size=image_size)  # (3, H, W)
+        # Landmark-only mode never looks at pixels, so skip the resize +
+        # ImageNet normalise entirely rather than doing it 30x per window.
+        frame_tensor = (None if args.landmark_only
+                        else _preprocess_frame(frame_rgb, image_size=image_size))
 
         # ── Append to sliding window ──────────────────────────────────────
         buffer.append((lm_63, frame_tensor))
@@ -350,27 +391,45 @@ def run_inference(args):
 
             # Build tensors
             lm_array   = np.stack([b[0] for b in buffer], axis=0)   # (30, 63)
-            lm_norm    = _normalise_landmark_window(lm_array)        # (30, 63)
-            frames_list = [b[1] for b in buffer]                    # list of (3,H,W)
 
-            lm_t = torch.from_numpy(lm_norm).unsqueeze(0).to(device)      # (1,30,63)
-            fr_t = torch.stack(frames_list, dim=1).unsqueeze(0).to(device) # (1,3,30,H,W)
+            # Hand-presence gate. _extract_landmarks returns all-zeros when
+            # MediaPipe finds no hand, and an all-zero window normalises to
+            # all-zeros — input the model was never trained on, for which it
+            # still emits some confident-looking class. Without this gate the
+            # mirror fires gestures at an empty room. Clips with no hand in any
+            # frame were dropped at preprocessing time precisely because they
+            # carry no landmark signal, so "no hand" is handled here instead of
+            # being learned.
+            hand_frames = int(np.sum(np.abs(lm_array).sum(axis=1) > 1e-8))
+            hand_ok = hand_frames >= min_hand_frames
 
-            with torch.no_grad():
-                with torch.autocast(device_type='cuda', dtype=torch.bfloat16,
-                                    enabled=(device.type == 'cuda')):
-                    if args.landmark_only:
-                        logits = model.forward_landmark_only(lm_t)
-                    else:
-                        logits = model(lm_t, fr_t)
+            if not hand_ok:
+                current_pred       = void_index
+                current_confidence = 1.0
+                probs_np           = np.zeros(num_classes, dtype=np.float32)
+                probs_np[void_index] = 1.0
+                consecutive_count  = 0   # never let a gate-forced null arm a trigger
+            else:
+                lm_norm = _normalise_landmark_window(lm_array)       # (30, 66)
+                lm_t = torch.from_numpy(lm_norm).unsqueeze(0).to(device)   # (1,30,66)
 
-            probs_t = F.softmax(logits.float(), dim=-1).squeeze(0)  # (num_classes,)
-            pred_class  = int(probs_t.argmax().item())
-            confidence  = float(probs_t[pred_class].item())
-            probs_np    = probs_t.cpu().numpy()
+                with torch.no_grad():
+                    with torch.autocast(device_type='cuda', dtype=torch.bfloat16,
+                                        enabled=(device.type == 'cuda')):
+                        if args.landmark_only:
+                            logits = model(lm_t)   # LandmarkOnlyModel.forward
+                        else:
+                            frames_list = [b[1] for b in buffer]
+                            fr_t = torch.stack(frames_list, dim=1).unsqueeze(0).to(device)
+                            logits = model(lm_t, fr_t)
 
-            current_pred       = pred_class
-            current_confidence = confidence
+                probs_t = F.softmax(logits.float(), dim=-1).squeeze(0)  # (num_classes,)
+                pred_class  = int(probs_t.argmax().item())
+                confidence  = float(probs_t[pred_class].item())
+                probs_np    = probs_t.cpu().numpy()
+
+                current_pred       = pred_class
+                current_confidence = confidence
             current_probs      = probs_np
 
             prediction_history.append((pred_class, confidence))

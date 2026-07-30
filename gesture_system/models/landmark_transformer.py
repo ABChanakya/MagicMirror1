@@ -13,7 +13,7 @@ import torch.nn as nn
 class LandmarkTransformer(nn.Module):
     def __init__(
         self,
-        input_dim: int = 63,
+        input_dim: int = 66,   # 63 shape + 3 wrist trajectory (see _normalise_landmarks)
         d_model: int = 256,
         nhead: int = 8,
         num_layers: int = 6,
