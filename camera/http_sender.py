@@ -31,7 +31,7 @@ class HttpSender:
 
     def send(self, event: dict) -> bool:
         """POST a single event dict. Returns True on success."""
-        return self._post(self.url, event, timeout_s=1.0)
+        return self._post(self.url, event, timeout_s=0.2)
 
     def send_gesture(self, name):
         # type: (Optional[str]) -> bool

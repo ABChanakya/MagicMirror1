@@ -1,0 +1,9 @@
+batch_size: 16
+d_model: 128
+dropout: 0.28389658540456975
+gradient_clip: 1.9277078197792565
+label_smoothing: 0.14589796612922826
+lr: 0.0011740085777673128
+num_layers: 3
+val_acc: 98.0
+weight_decay: 0.000884821829446744

@@ -1,19 +1,15 @@
 """
-main.py — MagicMirror3 camera pipeline
+main.py — MagicMirror3 camera pipeline (Phase 1: RTX 4090 rewrite)
 
-Captures frames from a webcam, runs:
-  1. Gesture detection  (MediaPipe, every frame)
-  2. Face recognition   (InsightFace, async every N frames)
-  3. Presence detection (derived from face results)
-
-Sends events to MMM-CameraBridge via HTTP (state-change only — no flooding).
-Serves a live JPEG debug view and Prometheus-style metrics on DEBUG_PORT.
+Swipe detection (left/right/up/down) + hand Y/X position tracking.
+No face recognition or presence detection in Phase 1.
 
 Usage:
     python3 main.py [--device /dev/video0] [--bridge-port 8082] [--debug]
 """
 
 import argparse
+import json as _json
 import logging
 import os
 import signal
@@ -21,17 +17,13 @@ import sys
 import threading
 import time
 from collections import deque
-from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler, HTTPServer
-from typing import Optional
 
 import cv2
 import numpy as np
 
-from face_recognizer import FaceRecognizer
-from gesture_detector import GestureDetector
+from gesture_detector_rulebased import GestureDetectorRuleBased as GestureDetector
 from http_sender import HttpSender
-from ws_bridge import WsBridge
 
 logging.basicConfig(
     level=logging.INFO,
@@ -39,33 +31,21 @@ logging.basicConfig(
 )
 logger = logging.getLogger("camera.main")
 
-# ── Config ───────────────────────────────────────────────────────────────────
+# Config
+CAMERA_FPS_LIMIT = int(os.getenv("CAMERA_FPS", "30"))
+CAMERA_WIDTH = int(os.getenv("CAMERA_WIDTH", "640"))
+CAMERA_HEIGHT = int(os.getenv("CAMERA_HEIGHT", "480"))
+MIRROR_FLIP = os.getenv("MIRROR_FLIP", "false").strip().lower() in ("1", "true", "yes")
+DEBUG_PORT = int(os.getenv("DEBUG_PORT", "8083"))
 
-FACE_STABLE_SECONDS   = float(os.getenv("FACE_STABLE_SECONDS",   "3.0"))
-FACE_TOLERANCE        = float(os.getenv("FACE_TOLERANCE",         "0.45"))
-PRESENCE_AWAY_AFTER   = float(os.getenv("PRESENCE_AWAY_AFTER",   "10.0"))
-CAMERA_FPS_LIMIT      = int(os.getenv("CAMERA_FPS",              "15"))
-CAMERA_WIDTH          = int(os.getenv("CAMERA_WIDTH",            "640"))
-CAMERA_HEIGHT         = int(os.getenv("CAMERA_HEIGHT",           "480"))
-AI_SCALE              = float(os.getenv("AI_SCALE",              "0.5"))
-FACE_DETECT_EVERY     = int(os.getenv("FACE_DETECT_EVERY",       "3"))
-HAND_FLICKER_TOLERANCE = int(os.getenv("HAND_FLICKER_FRAMES",    "3"))
-HAND_GONE_GRACE       = float(os.getenv("HAND_GONE_GRACE",       "0.5"))
-MIRROR_FLIP           = os.getenv("MIRROR_FLIP", "false").strip().lower() in ("1", "true", "yes")
-DEBUG_PORT            = int(os.getenv("DEBUG_PORT",              "8083"))
-WS_PORT               = int(os.getenv("WS_PORT",                "8084"))
-
-# ── Debug server state ────────────────────────────────────────────────────────
-
-import json as _json
-
-_jpeg_lock   = threading.Lock()
+# Debug state
+_jpeg_lock = threading.Lock()
 _latest_jpeg = b""
 
-_state_lock   = threading.Lock()
+_state_lock = threading.Lock()
 _latest_state: dict = {}
 
-_counters      = {"frames_processed": 0, "gestures_fired": 0, "face_hits": 0, "face_misses": 0}
+_counters = {"frames_processed": 0, "swipes_sent": 0}
 _counters_lock = threading.Lock()
 
 
@@ -93,7 +73,7 @@ _DEBUG_HTML = """\
 <html>
 <head>
 <meta charset="utf-8">
-<title>MagicMirror3 Camera Debug</title>
+<title>MagicMirror3 Camera Debug (Phase 1)</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: #111; color: #eee; font-family: monospace; display: flex;
@@ -121,33 +101,20 @@ _DEBUG_HTML = """\
 </style>
 </head>
 <body>
-<h1><span id="dot"></span>MagicMirror3 — Camera Debug</h1>
+<h1><span id="dot"></span>MagicMirror3 — Camera Debug (Phase 1)</h1>
 <img id="frame" src="/camera-frame.jpg" width="640" height="480" alt="camera">
 <div id="panel">
   <div class="card">
     <h2>Pipeline</h2>
     <div class="row"><span>FPS</span><span class="val" id="fps">—</span></div>
-    <div class="row"><span>Presence</span><span class="val" id="presence">—</span></div>
+    <div class="row"><span>Hand Present</span><span class="val" id="hand">—</span></div>
     <div class="row"><span>Frames</span><span class="val" id="frames">—</span></div>
   </div>
   <div class="card">
-    <h2>Gesture</h2>
-    <div class="row"><span>State</span><span class="val" id="g-state">—</span></div>
-    <div class="row"><span>Current</span><span class="val" id="g-current">—</span></div>
-    <div class="row"><span>Sent</span><span class="val" id="g-sent">—</span></div>
-    <div class="row"><span>Progress</span><span class="val" id="g-progress">—</span></div>
-  </div>
-  <div class="card">
-    <h2>Face</h2>
-    <div class="row"><span>Profile</span><span class="val" id="f-profile">—</span></div>
-    <div class="row"><span>Confidence</span><span class="val" id="f-conf">—</span></div>
-    <div class="row"><span>Hits / Misses</span><span class="val" id="f-hm">—</span></div>
-  </div>
-  <div class="card">
-    <h2>Config</h2>
-    <div class="row"><span>AI Scale</span><span class="val" id="ai-scale">—</span></div>
-    <div class="row"><span>Flip</span><span class="val" id="flip">—</span></div>
-    <div class="row"><span>Gestures fired</span><span class="val" id="g-fired">—</span></div>
+    <h2>Hand Position</h2>
+    <div class="row"><span>X</span><span class="val" id="hand-x">—</span></div>
+    <div class="row"><span>Y</span><span class="val" id="hand-y">—</span></div>
+    <div class="row"><span>Swipes Sent</span><span class="val" id="swipes">—</span></div>
   </div>
 </div>
 <div id="err">Connection lost — retrying…</div>
@@ -155,45 +122,25 @@ _DEBUG_HTML = """\
 const $ = id => document.getElementById(id);
 const dot = $('dot'), err = $('err');
 
-// ── Live frame: reload img src with cache-buster every 120ms ──────────────
-const img = $('frame');
-let frameOk = true;
 setInterval(() => {
   const next = new Image();
-  next.onload  = () => { img.src = next.src; frameOk = true;
-                         dot.className = 'live'; err.style.display='none'; };
-  next.onerror = () => { frameOk = false;
-                         dot.className = ''; err.style.display='block'; };
+  next.onload  = () => { img.src = next.src; dot.className = 'live'; err.style.display='none'; };
+  next.onerror = () => { dot.className = ''; err.style.display='block'; };
   next.src = '/camera-frame.jpg?t=' + Date.now();
 }, 120);
 
-// ── State polling every 350ms ─────────────────────────────────────────────
-function colorClass(val) {
-  if (!val || val === 'none' || val === 'away' || val === 'IDLE') return 'grey';
-  if (val === 'present' || val === 'LOCKED') return 'green';
-  if (val === 'BUILDING' || val === 'GRACE')  return 'yellow';
-  return '';
-}
-function set(id, text, cls) {
-  const el = $(id);
-  el.textContent = text ?? '—';
-  el.className = 'val ' + (cls || colorClass(String(text)));
-}
+const img = $('frame');
+
 setInterval(() => {
   fetch('/state').then(r => r.json()).then(s => {
-    set('fps',        (s.fps||0).toFixed(1) + ' fps', s.fps > 10 ? 'green' : 'yellow');
-    set('presence',   s.presence);
-    set('frames',     s.frames_processed);
-    set('g-state',    s.gesture_state);
-    set('g-current',  s.gesture_current || 'none');
-    set('g-sent',     s.gesture_sent    || 'none');
-    set('g-progress', s.hold_progress != null ? (s.hold_progress*100).toFixed(0)+'%' : '—', '');
-    set('f-profile',  s.face_profile  || 'none');
-    set('f-conf',     s.face_confidence != null ? (s.face_confidence*100).toFixed(1)+'%' : '—', '');
-    set('f-hm',       (s.face_hits||0) + ' / ' + (s.face_misses||0), '');
-    set('ai-scale',   s.ai_scale, '');
-    set('flip',       s.mirror_flip ? 'on' : 'off', s.mirror_flip ? 'yellow' : 'grey');
-    set('g-fired',    s.gestures_fired, '');
+    $('fps').textContent = (s.fps||0).toFixed(1) + ' fps';
+    $('fps').className = 'val ' + (s.fps > 10 ? 'green' : 'yellow');
+    $('hand').textContent = s.hand_present ? 'yes' : 'no';
+    $('hand').className = 'val ' + (s.hand_present ? 'green' : 'grey');
+    $('hand-x').textContent = s.hand_x != null ? s.hand_x.toFixed(3) : '—';
+    $('hand-y').textContent = s.hand_y != null ? s.hand_y.toFixed(3) : '—';
+    $('frames').textContent = s.frames_processed;
+    $('swipes').textContent = s.swipes_sent;
   }).catch(() => {});
 }, 350);
 </script>
@@ -224,24 +171,19 @@ class _DebugHandler(BaseHTTPRequestHandler):
             if data:
                 self._send(200, "image/jpeg", data)
             else:
-                self.send_response(503); self.end_headers()
+                self.send_response(503)
+                self.end_headers()
 
         elif self.path == "/state":
             with _state_lock:
                 s = dict(_latest_state)
             with _counters_lock:
                 s.update(_counters)
-            s["ai_scale"]    = AI_SCALE
-            s["mirror_flip"] = MIRROR_FLIP
             self._send(200, "application/json", _json.dumps(s).encode())
 
-        elif self.path == "/metrics":
-            with _counters_lock:
-                lines = [f"{k} {v}" for k, v in _counters.items()]
-            self._send(200, "text/plain", "\n".join(lines).encode())
-
         else:
-            self.send_response(404); self.end_headers()
+            self.send_response(404)
+            self.end_headers()
 
 
 def _start_debug_server(port: int):
@@ -254,94 +196,70 @@ def _start_debug_server(port: int):
         logger.warning("Could not start debug server on port %d: %s", port, e)
 
 
-# ── Annotation ────────────────────────────────────────────────────────────────
-
+# Hand skeleton for annotation
 _HAND_CONNECTIONS = [
-    (0,1),(1,2),(2,3),(3,4),         # thumb
-    (0,5),(5,6),(6,7),(7,8),         # index
-    (0,9),(9,10),(10,11),(11,12),    # middle
-    (0,13),(13,14),(14,15),(15,16),  # ring
-    (0,17),(17,18),(18,19),(19,20),  # pinky
-    (5,9),(9,13),(13,17),            # palm
+    (0, 1),
+    (1, 2),
+    (2, 3),
+    (3, 4),
+    (0, 5),
+    (5, 6),
+    (6, 7),
+    (7, 8),
+    (0, 9),
+    (9, 10),
+    (10, 11),
+    (11, 12),
+    (0, 13),
+    (13, 14),
+    (14, 15),
+    (15, 16),
+    (0, 17),
+    (17, 18),
+    (18, 19),
+    (19, 20),
+    (5, 9),
+    (9, 13),
+    (13, 17),
 ]
 
 
-def annotate_frame(
-    frame_bgr: np.ndarray,
-    disp_landmarks,
-    hold_progress: float,
-    current_gesture_state,
-    faces,
-    sent_gesture_state,
-    fps: float,
-) -> np.ndarray:
-    """Draw all overlays onto a copy of frame_bgr and return it."""
+def annotate_frame(frame_bgr: np.ndarray, landmarks, hand_x, hand_y, fps: float) -> np.ndarray:
+    """Draw hand skeleton and position onto frame."""
     out = frame_bgr.copy()
     h, w = out.shape[:2]
 
-    # ── Hand skeleton + bounding box ─────────────────────────────────────
-    if disp_landmarks is not None:
-        pts = [(int(lm.x * w), int(lm.y * h)) for lm in disp_landmarks]
+    if landmarks is not None:
+        pts = [(int(lm.x * w), int(lm.y * h)) for lm in landmarks]
 
-        # Skeleton lines
+        # Skeleton
         for a, b in _HAND_CONNECTIONS:
             cv2.line(out, pts[a], pts[b], (255, 200, 0), 2)
-        # Landmark dots
+
+        # Landmarks
         for pt in pts:
             cv2.circle(out, pt, 4, (0, 200, 255), cv2.FILLED)
 
+        # Bounding box
         xs, ys = [p[0] for p in pts], [p[1] for p in pts]
         pad = 12
         x1 = max(0, min(xs) - pad)
         y1 = max(0, min(ys) - pad)
         x2 = min(w, max(xs) + pad)
         y2 = min(h, max(ys) + pad)
+        cv2.rectangle(out, (x1, y1), (x2, y2), (200, 200, 200), 2)
 
-        # Box color by state
-        if sent_gesture_state is not None and hold_progress >= 1.0:
-            box_color = (255, 255, 0)    # cyan — LOCKED
-        elif hold_progress > 0:
-            box_color = (0, 255, 120)    # green — BUILDING
-        else:
-            box_color = (200, 200, 200)  # grey  — IDLE
+        # Position label
+        if hand_x is not None and hand_y is not None:
+            label = f"X:{hand_x:.3f} Y:{hand_y:.3f}"
+            cv2.putText(out, label, (x1, max(20, y1 - 10)),
+                        cv2.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 2, cv2.LINE_AA)
 
-        cv2.rectangle(out, (x1, y1), (x2, y2), box_color, 2)
-
-        # Label above box — current_gesture_state is set by main.py each frame
-        if current_gesture_state:
-            label_y = max(20, y1 - 10)
-            cv2.putText(out, current_gesture_state, (x1, label_y),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.7, box_color, 2, cv2.LINE_AA)
-
-        # Progress bar (only while building, not yet locked)
-        if 0.0 < hold_progress < 1.0:
-            cv2.rectangle(out, (x1, y2 + 6), (x2, y2 + 12), (60, 60, 60), cv2.FILLED)
-            fill_x = x1 + int((x2 - x1) * hold_progress)
-            cv2.rectangle(out, (x1, y2 + 6), (fill_x, y2 + 12), (0, 255, 120), cv2.FILLED)
-
-    # ── Face boxes ────────────────────────────────────────────────────────
-    for face in faces:
-        top, right, bottom, left = face["location"]
-        profile    = face["profile"]
-        confidence = face["confidence"]
-        known      = profile != "unknown"
-        color      = (0, 220, 0) if known else (0, 80, 220)
-
-        cv2.rectangle(out, (left, top), (right, bottom), color, 2)
-        face_label = f"{profile}  {confidence:.0%}" if known else "unbekannt"
-        lw, lh = cv2.getTextSize(face_label, cv2.FONT_HERSHEY_SIMPLEX, 0.55, 1)[0]
-        cv2.rectangle(out, (left, top - lh - 8), (left + lw + 6, top), color, cv2.FILLED)
-        cv2.putText(out, face_label, (left + 3, top - 4),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.55, (0, 0, 0), 1, cv2.LINE_AA)
-
-    # ── FPS overlay ───────────────────────────────────────────────────────
     cv2.putText(out, f"FPS:{fps:.0f}", (8, h - 10),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1, cv2.LINE_AA)
 
     return out
 
-
-# ── Camera ────────────────────────────────────────────────────────────────────
 
 def open_camera(device: str) -> cv2.VideoCapture:
     logger.info("Opening camera: %s  (%dx%d @ %d fps)", device, CAMERA_WIDTH, CAMERA_HEIGHT, CAMERA_FPS_LIMIT)
@@ -349,7 +267,7 @@ def open_camera(device: str) -> cv2.VideoCapture:
     if not cap.isOpened():
         logger.error("Cannot open camera %s", device)
         sys.exit(1)
-    cap.set(cv2.CAP_PROP_FRAME_WIDTH,  CAMERA_WIDTH)
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
     cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
     cap.set(cv2.CAP_PROP_FPS, CAMERA_FPS_LIMIT)
     logger.info("Camera opened (%.0fx%.0f @ %.0f fps)",
@@ -359,96 +277,40 @@ def open_camera(device: str) -> cv2.VideoCapture:
     return cap
 
 
-# ── Argument parsing ──────────────────────────────────────────────────────────
-
 def parse_args():
-    p = argparse.ArgumentParser(description="MagicMirror3 camera pipeline")
-    p.add_argument("--device",      default=os.getenv("CAMERA_DEVICE", "/dev/video0"))
+    p = argparse.ArgumentParser(description="MagicMirror3 camera pipeline (Phase 1)")
+    p.add_argument("--device", default=os.getenv("CAMERA_DEVICE", "/dev/video0"))
     p.add_argument("--bridge-port", type=int, default=int(os.getenv("BRIDGE_PORT", "8082")))
-    p.add_argument("--debug",       action="store_true")
+    p.add_argument("--debug", action="store_true")
     return p.parse_args()
 
-
-# ── Main loop ─────────────────────────────────────────────────────────────────
 
 def main():
     args = parse_args()
     if args.debug:
         logging.getLogger().setLevel(logging.DEBUG)
 
-    # ── Gesture state machine ─────────────────────────────────────────────
-    #
-    #   IDLE ──[hand+progress>0]──► BUILDING ──[progress==1.0]──► LOCKED
-    #    ▲                              │                             │
-    #    │                    [count changes]                 [hand disappears]
-    #    │                              ▼                             ▼
-    #    └──────────[grace expires]── IDLE          GRACE ◄──────────┘
-    #                                                 │
-    #                               [hand returns within HAND_GONE_GRACE]
-    #                                                 │
-    #                                              LOCKED
-
-    IDLE, BUILDING, LOCKED, GRACE = "IDLE", "BUILDING", "LOCKED", "GRACE"
-
-    sender   = HttpSender(port=args.bridge_port)
-    face_rec = FaceRecognizer(tolerance=FACE_TOLERANCE)
+    sender = HttpSender(port=args.bridge_port)
     gestures = GestureDetector()
-
     _start_debug_server(DEBUG_PORT)
 
-    bridge = WsBridge(port=WS_PORT)
-    bridge.start()
-
-    cap               = open_camera(args.device)
-    shutdown_flag     = threading.Event()
-    executor          = ThreadPoolExecutor(max_workers=1)
+    cap = open_camera(args.device)
+    shutdown_flag = threading.Event()
 
     def _shutdown(*_):
         logger.info("Shutdown signal received.")
         shutdown_flag.set()
 
-    def _reload_face(*_):
-        logger.info("SIGHUP — reloading face recognizer from disk.")
-        try:
-            face_rec.reload()
-        except Exception as exc:
-            logger.error("Face reload failed: %s", exc)
-
     signal.signal(signal.SIGTERM, _shutdown)
-    if hasattr(signal, "SIGHUP"):
-        signal.signal(signal.SIGHUP, _reload_face)
 
-    # ── Per-frame state ───────────────────────────────────────────────────
-    presence           = False
-    last_seen_time     = 0.0
-    last_profile       = None
-    profile_since      = 0.0
-    face_confirmed     = False
+    frame_interval = 1.0 / CAMERA_FPS_LIMIT
+    last_frame_time = 0.0
+    fps_buf: deque = deque(maxlen=30)
+    prev_frame_ts = time.monotonic()
 
-    frame_interval     = 1.0 / CAMERA_FPS_LIMIT
-    last_frame_time    = 0.0
-    fps_buf: deque     = deque(maxlen=30)
-    prev_frame_ts      = time.monotonic()
+    read_fail_count = 0
 
-    # Face async
-    face_frame_counter = 0
-    cached_faces: list = []
-    face_future        = None
-
-    # Sticky display
-    hand_lost_frames   = 0
-    disp_landmarks     = None
-    hand_gone_since = None  # type: Optional[float]
-
-    # Gesture state machine
-    gesture_state      = IDLE
-    sent_gesture_state = None
-    current_gesture_label = None
-
-    # Read-failure counter for auto-reconnect
-    read_fail_count    = 0
-
-    logger.info("Camera pipeline running. Press Ctrl+C or send SIGTERM to stop.")
+    logger.info("Camera pipeline running (Phase 1). Press Ctrl+C or send SIGTERM to stop.")
 
     try:
         while not shutdown_flag.is_set():
@@ -475,210 +337,40 @@ def main():
                 continue
             read_fail_count = 0
 
-            frame_ts       = time.monotonic()
+            frame_ts = time.monotonic()
             fps_buf.append(1.0 / max(1e-6, frame_ts - prev_frame_ts))
-            prev_frame_ts  = frame_ts
-            measured_fps   = sum(fps_buf) / len(fps_buf)
+            prev_frame_ts = frame_ts
+            measured_fps = sum(fps_buf) / len(fps_buf)
             _inc("frames_processed")
 
-            # Optional mirror flip before any AI
             if MIRROR_FLIP:
                 frame = cv2.flip(frame, 1)
 
             rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-            # AI downsampled copy
-            if AI_SCALE != 1.0:
-                small = cv2.resize(rgb, (0, 0), fx=AI_SCALE, fy=AI_SCALE,
-                                   interpolation=cv2.INTER_AREA)
-            else:
-                small = rgb
+            # Process frame for swipes + hand position
+            gesture_event, hand_present = gestures.process_frame(rgb)
 
-            # ── Gesture detection ─────────────────────────────────────────
-            gestures.process_frame(small)
+            # Send gesture event in background thread (non-blocking)
+            if gesture_event:
+                _inc("swipes_sent")
+                logger.info("Gesture sent: %s", gesture_event["name"])
+                threading.Thread(target=sender.send, args=(gesture_event,), daemon=True).start()
 
-            raw_landmarks    = gestures.last_landmarks
-            raw_finger_state = gestures.last_finger_state   # int | None
-            hold_progress    = gestures.hold_progress
-
-            # Flicker buffer for display
-            if raw_landmarks is not None:
-                hand_lost_frames = 0
-                disp_landmarks   = raw_landmarks
-                hand_gone_since  = None
-            else:
-                hand_lost_frames += 1
-                if hand_lost_frames > HAND_FLICKER_TOLERANCE:
-                    disp_landmarks = None
-                if hand_gone_since is None and hand_lost_frames > HAND_FLICKER_TOLERANCE:
-                    hand_gone_since = now
-
-            # Display label = live finger count
-            if raw_finger_state is not None and raw_finger_state > 0:
-                current_gesture_label = f"fingers_{raw_finger_state}"
-            elif raw_finger_state == 0:
-                current_gesture_label = "fist"
-            elif disp_landmarks is None:
-                current_gesture_label = None
-
-            # ── Gesture state machine ─────────────────────────────────────
-            hand_present = disp_landmarks is not None
-
-            if gesture_state == IDLE:
-                if hand_present and hold_progress > 0:
-                    gesture_state = BUILDING
-                    logger.debug("Gesture: IDLE → BUILDING")
-
-            elif gesture_state == BUILDING:
-                if not hand_present:
-                    gesture_state = IDLE
-                    hold_progress = 0.0
-                    logger.debug("Gesture: BUILDING → IDLE (hand lost)")
-                elif raw_finger_state != (
-                    int(sent_gesture_state.split("_")[1])
-                    if sent_gesture_state and sent_gesture_state.startswith("fingers_")
-                    else None
-                ) and hold_progress == 0.0:
-                    # count changed mid-build — restart
-                    gesture_state = IDLE
-                    logger.debug("Gesture: BUILDING → IDLE (count changed)")
-                elif hold_progress >= 1.0:
-                    gesture_state = LOCKED
-                    new_state = current_gesture_label
-                    if new_state != sent_gesture_state:
-                        sent_gesture_state = new_state
-                        logger.info("Gesture LOCKED: %s", new_state)
-                        if new_state:
-                            sender.send_gesture(new_state)
-                            _inc("gestures_fired")
-                            bridge.broadcast({
-                                "type": "GESTURE_EVENT",
-                                "payload": {"gesture": new_state, "confirmed": True},
-                            })
-
-            elif gesture_state == LOCKED:
-                if not hand_present:
-                    gesture_state = GRACE
-                    logger.debug("Gesture: LOCKED → GRACE")
-                elif raw_finger_state is not None and current_gesture_label != sent_gesture_state:
-                    # Pose changed while still showing hand
-                    gesture_state = BUILDING
-                    logger.debug("Gesture: LOCKED → BUILDING (pose changed)")
-
-            elif gesture_state == GRACE:
-                if hand_present:
-                    gesture_state = LOCKED
-                    logger.debug("Gesture: GRACE → LOCKED (hand returned)")
-                elif hand_gone_since is not None and (now - hand_gone_since) >= HAND_GONE_GRACE:
-                    gesture_state      = IDLE
-                    sent_gesture_state = None
-                    hold_progress      = 0.0
-                    logger.info("Gesture: GRACE → IDLE (grace expired)")
-                    sender.send_gesture(None)
-
-            # ── Face / presence detection (async, every N frames) ─────────
-            face_frame_counter += 1
-            if face_frame_counter >= FACE_DETECT_EVERY:
-                face_frame_counter = 0
-                if face_future is None or face_future.done():
-                    face_future = executor.submit(face_rec.identify, small)
-
-            if face_future is not None and face_future.done():
-                try:
-                    raw_faces = face_future.result()
-                    # Scale bbox coords from AI-downsampled space back to full frame
-                    if AI_SCALE != 1.0 and raw_faces:
-                        inv = 1.0 / AI_SCALE
-                        cached_faces = [
-                            {**f, "location": tuple(int(c * inv) for c in f["location"])}
-                            for f in raw_faces
-                        ]
-                    else:
-                        cached_faces = raw_faces
-                except Exception as e:
-                    logger.debug("Face future error: %s", e)
-                    cached_faces = []
-                face_future = None
-
-            faces = cached_faces
-            best_profile    = "unknown"
-            best_confidence = 0.0
-
-            if faces:
-                last_seen_time = now
-                if not presence:
-                    presence = True
-                    logger.info("Presence: present")
-                    sender.send_presence("present")
-                    bridge.broadcast({
-                        "type": "PRESENCE_UPDATE",
-                        "payload": {
-                            "present": True,
-                            "count": len(faces),
-                            "faces": [{"name": f.get("profile", "Unknown"),
-                                       "confidence": float(f.get("confidence", 0.0))}
-                                      for f in faces],
-                        },
-                    })
-                    def _greet(bridge=bridge):
-                        time.sleep(1.0)
-                        snap = list(cached_faces)
-                        names = [f.get("profile", "Unknown") for f in snap] or ["Unknown"]
-                        bridge.broadcast({
-                            "type": "GREETING",
-                            "payload": {"names": names, "count": len(names)},
-                        })
-                    threading.Thread(target=_greet, daemon=True).start()
-
-                best = max(faces, key=lambda f: f["confidence"])
-                best_profile    = best["profile"]
-                best_confidence = float(best["confidence"])
-
-                if best_profile != last_profile:
-                    last_profile   = best_profile
-                    profile_since  = now
-                    face_confirmed = False
-
-                stable = (now - profile_since) >= FACE_STABLE_SECONDS
-                if stable and not face_confirmed and best_profile != "unknown":
-                    logger.info("Face: %s (%.2f)", best_profile, best_confidence)
-                    sender.send_face(best_profile, best_confidence)
-                    face_confirmed = True
-                    _inc("face_hits")
-            else:
-                _inc("face_misses")
-                away_for = now - last_seen_time
-                if presence and away_for >= PRESENCE_AWAY_AFTER:
-                    presence       = False
-                    last_profile   = None
-                    face_confirmed = False
-                    logger.info("Presence: away (%.1fs)", away_for)
-                    sender.send_presence("away")
-                    bridge.broadcast({
-                        "type": "PRESENCE_UPDATE",
-                        "payload": {"present": False, "count": 0, "faces": []},
-                    })
-
-            # ── Annotate + push debug JPEG + state ───────────────────────
+            # Annotate and push debug frame
             annotated = annotate_frame(
                 frame,
-                disp_landmarks,
-                hold_progress,
-                current_gesture_label,
-                faces,
-                sent_gesture_state,
+                gestures.last_landmarks,
+                gestures.hand_x,
+                gestures.hand_y,
                 measured_fps,
             )
             _update_jpeg(annotated)
             _update_state({
-                "fps":              round(measured_fps, 1),
-                "presence":         "present" if presence else "away",
-                "gesture_state":    gesture_state,
-                "gesture_current":  current_gesture_label,
-                "gesture_sent":     sent_gesture_state,
-                "hold_progress":    round(hold_progress, 2),
-                "face_profile":     best_profile,
-                "face_confidence":  round(best_confidence, 3),
+                "fps": round(measured_fps, 1),
+                "hand_present": hand_present,
+                "hand_x": gestures.hand_x,
+                "hand_y": gestures.hand_y,
             })
 
     except KeyboardInterrupt:
@@ -687,7 +379,6 @@ def main():
         shutdown_flag.set()
         cap.release()
         gestures.close()
-        executor.shutdown(wait=False)
         logger.info("Camera pipeline stopped.")
 
 

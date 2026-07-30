@@ -61,14 +61,11 @@ let config = {
         bridgeUrl: "ws://172.17.0.1:8084",
         greetingDuration: 8000,
         unknownName: "Gast",
-        gestureMap: {
-          fingers_1: { notification: "PAGE_SELECT", payload: 1 },
-          fingers_2: { notification: "PAGE_SELECT", payload: 2 },
-          fingers_3: { notification: "PAGE_SELECT", payload: 3 },
-          fingers_4: { notification: "PAGE_SELECT", payload: 4 },
-          fingers_5: { notification: "POKEMON_FLIP" },
-          fist:      { notification: "PAGE_SELECT", payload: 0 },
-        }
+        // Phase 1: Swipe-based navigation (built-in to MMM-CameraBridge)
+        // swipe_left  → PAGE_INCREMENT (next page)
+        // swipe_right → PAGE_DECREMENT (prev page)
+        // swipe_up    → POKEMON_FLIP (interact)
+        // swipe_down  → PAGE_SELECT 0 (home)
       }
     },
     {

@@ -1,17 +1,9 @@
-# Jetson Nano (JetPack 4.6.x, Python 3.6, Ubuntu 18.04)
-#
-# DO NOT pip install:
-#   opencv-python  → sudo apt install python3-opencv
-#   mediapipe      → PINTO0309 prebuilt wheel (see setup.sh)
-#   nvidia-*-cu12  → x86-only, JetPack provides CUDA system-wide
-#
-# Installed separately in setup.sh (need system deps first):
-#   dlib==19.21.1          → compiles from source, ~30 min on Jetson Nano
-#   face_recognition==1.3.0
+# RTX 4090 PC (Python 3.10+, x86_64, Ubuntu)
+# Modern rewrite with CUDA acceleration
 
-numpy>=1.19,<1.25
-websockets>=8.0,<10
-requests>=2.25
-Pillow>=8.0
-tqdm>=4.0
-python-dotenv>=0.19
+mediapipe>=0.8.9
+opencv-python>=4.8.0
+numpy>=1.24.0
+requests>=2.31.0
+Pillow>=10.0.0
+flask>=2.3.0

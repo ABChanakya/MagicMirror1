@@ -1,0 +1,51 @@
+data:
+  raw_dir: ../camera/gesture_training_data
+  processed_dir: /media/bhaskara/Volume/Data_Gesture/raw
+  augmented_dir: /media/bhaskara/Volume/Data_Gesture/augmented
+  num_frames: 30
+  image_size: 112
+  classes: [swipe_left, swipe_right, swipe_up, swipe_down, "null"]
+
+augmentation:
+  horizontal_flip: true
+  color_jitter: true
+  color_jitter_brightness: 0.4
+  color_jitter_contrast: 0.3
+  color_jitter_saturation: 0.3
+  color_jitter_hue: 0.05
+  temporal_jitter: true
+  temporal_jitter_range: [0.6, 1.4]
+  landmark_noise_std: 0.01
+  rotation_max_degrees: 3.0
+  frame_dropout: true
+  frame_dropout_max: 2
+
+model:
+  landmark_d_model: 256
+  landmark_nhead: 8
+  landmark_num_layers: 6
+  landmark_dim_feedforward: 1024
+  landmark_dropout: 0.1
+  fusion_hidden: 512
+  fusion_dropout: 0.3
+  num_classes: 5
+
+training:
+  batch_size: 16
+  phase1_epochs: 0
+  phase2_epochs: 5
+  phase3_epochs: 0
+  phase1_lr: 0.0001
+  phase2_lr: 0.00005
+  phase3_lr_backbone: 0.000005
+  phase3_lr_head: 0.00005
+  weight_decay: 0.01
+  label_smoothing: 0.1
+  gradient_clip: 0.5
+  precision: fp32
+
+inference:
+  confidence_threshold: 0.70
+  consecutive_predictions_required: 1
+  inference_every_n_frames: 1
+  cooldown_frames: 30
