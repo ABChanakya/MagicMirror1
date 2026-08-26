@@ -13,6 +13,7 @@ training time.
 
 import math
 import random
+from pathlib import Path
 from typing import Tuple, Optional
 
 import numpy as np
@@ -25,20 +26,47 @@ import torchvision.transforms.functional as TF
 # Label constants (must match config.yaml class order)
 # ──────────────────────────────────────────────────────────────────────────────
 
-SWIPE_LEFT  = 0
-SWIPE_RIGHT = 1
-SWIPE_UP    = 2
-SWIPE_DOWN  = 3
-VOID        = 4
+# Indices come from config.yaml rather than being written out by hand: the
+# class list is editable (dropping swipe_up/swipe_down renumbers "null"), and a
+# stale constant here would mislabel every horizontally flipped clip in
+# training without ever raising an error.
 
-# When we mirror horizontally, left ↔ right swaps.
-_FLIP_LABEL_MAP = {
-    SWIPE_LEFT:  SWIPE_RIGHT,
-    SWIPE_RIGHT: SWIPE_LEFT,
-    SWIPE_UP:    SWIPE_UP,
-    SWIPE_DOWN:  SWIPE_DOWN,
-    VOID:        VOID,
+def _class_order():
+    try:
+        import yaml
+        cfg = yaml.safe_load((Path(__file__).parent / 'config.yaml').read_text())
+        return [str(c) for c in cfg['data']['classes']]
+    except Exception:
+        return ['swipe_left', 'swipe_right', 'swipe_up', 'swipe_down', 'null']
+
+
+CLASSES = _class_order()
+
+
+def _index_of(name):
+    """Index of a class, or -1 when this config does not train that class."""
+    return CLASSES.index(name) if name in CLASSES else -1
+
+
+SWIPE_LEFT  = _index_of('swipe_left')
+SWIPE_RIGHT = _index_of('swipe_right')
+SWIPE_UP    = _index_of('swipe_up')
+SWIPE_DOWN  = _index_of('swipe_down')
+VOID        = _index_of('null')
+
+# When we mirror horizontally, left ↔ right swaps; everything else keeps its
+# label. Built by name so it stays correct whatever the configured class order.
+_FLIP_NAME_MAP = {
+    'swipe_left':  'swipe_right',
+    'swipe_right': 'swipe_left',
 }
+_FLIP_LABEL_MAP = {
+    _index_of(name): _index_of(_FLIP_NAME_MAP.get(name, name))
+    for name in CLASSES
+}
+# Classes absent from this config collapse to -1; map it to itself so callers
+# that still reference e.g. SWIPE_UP get a harmless no-op rather than KeyError.
+_FLIP_LABEL_MAP.setdefault(-1, -1)
 
 
 # ──────────────────────────────────────────────────────────────────────────────

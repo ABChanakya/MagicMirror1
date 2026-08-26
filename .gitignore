@@ -8,5 +8,15 @@ node_modules/
 *.log
 # Recorded gesture clips — 190 MB+ of video, keep out of git
 camera/gesture_training_data/
+# Dataset archives produced by camera/export_dataset.py pack
+camera/gestures_*.tar.gz
+camera/gestures_*.tar.gz.sha256
 logs/
 training/
+
+# Per-machine camera pick from camera/collect_gesture_data.py cameras
+camera/.camera_choice.json
+
+# macOS finder droppings
+.DS_Store
+**/.DS_Store
