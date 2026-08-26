@@ -9,7 +9,7 @@ data:
   augmented_dir: data/augmented
   num_frames: 30
   image_size: 112
-  classes: [swipe_left, swipe_right, swipe_up, swipe_down, "null"]
+  classes: [swipe_left, swipe_right, "null"]
 
 augmentation:
   horizontal_flip: true
@@ -33,7 +33,7 @@ model:
   landmark_dropout: 0.1
   fusion_hidden: 512
   fusion_dropout: 0.3
-  num_classes: 5
+  num_classes: 3
 
 # Legacy two-stream training (train.py). The landmark-only pipeline
 # (train_landmark.py) takes its settings from CLI flags instead.
