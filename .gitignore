@@ -10,3 +10,4 @@ node_modules/
 camera/gesture_training_data/
 logs/
 training/
+camera/incoming_mac/
