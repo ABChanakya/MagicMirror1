@@ -24,3 +24,7 @@ camera/.camera_choice.json
 # macOS finder droppings
 .DS_Store
 **/.DS_Store
+gesture_system/experiment_results.json
+gesture_system/sweep_results.json
+gesture_system/training_run.log
+gesture_system/experiments.log

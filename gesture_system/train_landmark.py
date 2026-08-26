@@ -71,17 +71,29 @@ def aug_traj_scale(lm: np.ndarray, lo: float = 0.75, hi: float = 1.3):
     return out
 
 
-def augment(lm: np.ndarray, label: int):
+# Default probability of applying each augmentation to a training sample.
+# sweep.py overrides these to ablate individual augmentations.
+DEFAULT_AUG = {
+    'flip':       0.5,
+    'time_warp':  0.7,
+    'rotate':     0.5,
+    'traj_scale': 0.5,
+    'noise':      0.8,
+}
+
+
+def augment(lm: np.ndarray, label: int, cfg: dict | None = None):
     """Random augmentation chain applied to TRAIN samples only."""
-    if np.random.rand() < 0.5:
+    p = DEFAULT_AUG if cfg is None else cfg
+    if np.random.rand() < p.get('flip', 0.0):
         lm, label = aug_flip(lm, label)
-    if np.random.rand() < 0.7:
+    if np.random.rand() < p.get('time_warp', 0.0):
         lm = aug_time_warp(lm)
-    if np.random.rand() < 0.5:
+    if np.random.rand() < p.get('rotate', 0.0):
         lm = aug_rotate(lm)
-    if np.random.rand() < 0.5:
+    if np.random.rand() < p.get('traj_scale', 0.0):
         lm = aug_traj_scale(lm)
-    if np.random.rand() < 0.8:
+    if np.random.rand() < p.get('noise', 0.0):
         lm = aug_noise(lm)
     return lm.astype(np.float32), label
 
@@ -120,8 +132,8 @@ def assert_aug_matches():
 # ── Dataset ───────────────────────────────────────────────────────────────────
 
 class LandmarkDataset(Dataset):
-    def __init__(self, X: np.ndarray, y: np.ndarray, train: bool):
-        self.X, self.y, self.train = X, y, train
+    def __init__(self, X: np.ndarray, y: np.ndarray, train: bool, aug_cfg: dict | None = None):
+        self.X, self.y, self.train, self.aug_cfg = X, y, train, aug_cfg
 
     def __len__(self):
         return len(self.y)
@@ -129,7 +141,7 @@ class LandmarkDataset(Dataset):
     def __getitem__(self, i):
         lm, label = self.X[i], int(self.y[i])
         if self.train:
-            lm, label = augment(lm, label)
+            lm, label = augment(lm, label, self.aug_cfg)
         return torch.from_numpy(np.ascontiguousarray(lm)), label
 
 
@@ -167,6 +179,14 @@ def split_by_clip(clip_ids, y, seed=42, val_frac=0.15, test_frac=0.15):
 
 @torch.no_grad()
 def evaluate(model, loader, device, num_classes):
+    """
+    Returns (accuracy, balanced_accuracy, confusion).
+
+    balanced_accuracy is the mean of per-class recall. With ~350/347/35 clips,
+    plain accuracy barely moves if the model gets `null` completely wrong, so it
+    is the wrong thing to select checkpoints on — balanced accuracy weights the
+    thin class equally and is what the caller uses to pick the best epoch.
+    """
     model.eval()
     correct = total = 0
     conf = np.zeros((num_classes, num_classes), dtype=int)
@@ -177,7 +197,12 @@ def evaluate(model, loader, device, num_classes):
         total += label.numel()
         for t, p in zip(label.cpu().numpy(), pred.cpu().numpy()):
             conf[t, p] += 1
-    return correct / max(total, 1), conf
+
+    per_class_n = conf.sum(axis=1)
+    seen = per_class_n > 0
+    recalls = np.divide(conf.diagonal(), np.maximum(per_class_n, 1))
+    balanced = float(recalls[seen].mean()) if seen.any() else 0.0
+    return correct / max(total, 1), balanced, conf
 
 
 def main():
@@ -194,6 +219,9 @@ def main():
     ap.add_argument('--dropout', type=float, default=0.2)
     ap.add_argument('--seed', type=int, default=42)
     ap.add_argument('--out', default='checkpoints/landmark_best.pt')
+    ap.add_argument('--class-weights', action='store_true', default=True,
+                    help='inverse-frequency loss weighting (on by default)')
+    ap.add_argument('--no-class-weights', dest='class_weights', action='store_false')
     ap.add_argument('--smoke-test', action='store_true')
     args = ap.parse_args()
 
@@ -218,7 +246,26 @@ def main():
     assert not (set(clip_ids[va]) & set(clip_ids[te])), "val/test clip overlap"
     print(f"[split] train={len(tr)}  val={len(va)}  test={len(te)}  (disjoint clips ✓)")
 
+    counts = np.bincount(y[tr], minlength=num_classes)
+    print("[split] train clips per class: " +
+          "  ".join(f"{c}={n}" for c, n in zip(classes, counts)))
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    # Class weighting. With ~350/347/35 the majority classes dominate the loss
+    # and `null` gets underfit — and `null` is precisely what stops the model
+    # firing on incidental hand movement, so underfitting it shows up as false
+    # positives at inference rather than as a bad headline accuracy.
+    # Inverse-frequency, normalised to mean 1 so the effective LR is unchanged.
+    if args.class_weights:
+        w = counts.sum() / np.maximum(counts, 1)
+        w = w / w.mean()
+        class_weight = torch.tensor(w, dtype=torch.float32, device=device)
+        print("[loss] class weights: " +
+              "  ".join(f"{c}={x:.2f}" for c, x in zip(classes, w)))
+    else:
+        class_weight = None
+        print("[loss] class weights: disabled")
 
     train_ds = LandmarkDataset(X[tr], y[tr], train=True)
     val_ds   = LandmarkDataset(X[va], y[va], train=False)
@@ -244,7 +291,7 @@ def main():
     n_params = sum(p.numel() for p in model.parameters())
     print(f"[model] LandmarkOnlyModel — {n_params:,} trainable params  (device={device})")
 
-    crit = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing)
+    crit = nn.CrossEntropyLoss(label_smoothing=args.label_smoothing, weight=class_weight)
     opt = torch.optim.AdamW(model.parameters(), lr=args.lr, weight_decay=args.weight_decay)
     epochs = 2 if args.smoke_test else args.epochs
     sched = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=epochs)
@@ -271,23 +318,27 @@ def main():
         sched.step()
 
         tr_loss, tr_acc = tot_loss / max(tot_n, 1), tot_correct / max(tot_n, 1)
-        val_acc, _ = evaluate(model, val_ld, device, num_classes)
-        log.append({'epoch': ep, 'train_loss': tr_loss, 'train_acc': tr_acc, 'val_acc': val_acc})
+        val_acc, val_bal, _ = evaluate(model, val_ld, device, num_classes)
+        log.append({'epoch': ep, 'train_loss': tr_loss, 'train_acc': tr_acc,
+                    'val_acc': val_acc, 'val_balanced_acc': val_bal})
 
         marker = ''
-        if val_acc > best_val:
-            best_val = val_acc
+        # Select on balanced accuracy, not plain accuracy — see evaluate()
+        if val_bal > best_val:
+            best_val = val_bal
             best_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             marker = '  <-- best'
         if ep % 5 == 0 or ep == 1 or marker:
-            print(f"  epoch {ep:3}/{epochs} | loss {tr_loss:.4f} | train {tr_acc*100:5.1f}% | val {val_acc*100:5.1f}%{marker}")
+            print(f"  epoch {ep:3}/{epochs} | loss {tr_loss:.4f} | train {tr_acc*100:5.1f}% | "
+                  f"val {val_acc*100:5.1f}% | val-balanced {val_bal*100:5.1f}%{marker}")
 
     # ── Final honest evaluation on the untouched test split ───────────────────
     model.load_state_dict(best_state)
-    test_acc, conf = evaluate(model, test_ld, device, num_classes)
+    test_acc, test_bal, conf = evaluate(model, test_ld, device, num_classes)
 
-    print(f"\n[result] best val acc: {best_val*100:.1f}%")
+    print(f"\n[result] best val balanced acc: {best_val*100:.1f}%")
     print(f"[result] TEST acc (never seen during training or model selection): {test_acc*100:.1f}%")
+    print(f"[result] TEST balanced acc (mean per-class recall):                {test_bal*100:.1f}%")
     print("\n  Confusion matrix (rows = true, cols = predicted):")
     header = ' ' * 14 + ''.join(f"{c[:9]:>10}" for c in classes)
     print(header)
@@ -299,8 +350,9 @@ def main():
 
     torch.save({
         'model_state_dict': model.state_dict(),
-        'val_acc': best_val,
+        'val_balanced_acc': best_val,
         'test_acc': test_acc,
+        'test_balanced_acc': test_bal,
         'classes': classes,
         'input_dim': 66,
         'arch': 'LandmarkOnlyModel',
