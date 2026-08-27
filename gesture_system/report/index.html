@@ -1,0 +1,1043 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Cross-validated data-scaling experiment for the MagicMirror gesture classifier: a null recording is worth about 27x more per clip than another swipe.">
+<title>Where the Next Clip Counts</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans+Condensed:wght@500;600;700&family=IBM+Plex+Serif:ital,wght@0,400;0,600;1,400&display=swap">
+<style>
+:root {
+  --paper:      #F6F7F8;
+  --panel:      #FFFFFF;
+  --ink:        #141A21;
+  --ink-2:      #37424E;
+  --muted:      #5F6B78;
+  --rule:       #DDE2E7;
+  --rule-soft:  #EAEEF1;
+  --accent:     #1C5CAB;
+  --s-null:     #EB6834;
+  --s-null-dim: #EB683422;
+  --s-swipe:    #2A78D6;
+  --s-swipe-dim:#2A78D622;
+  --flag:       #B23A12;
+
+  --f-display: "IBM Plex Sans Condensed", "Helvetica Neue", Arial, sans-serif;
+  --f-body:    "IBM Plex Serif", Georgia, "Times New Roman", serif;
+  --f-mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --measure: 66ch;
+  --gutter: clamp(1.1rem, 4vw, 3rem);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper:      #14181C;
+    --panel:      #191F24;
+    --ink:        #E6EBF0;
+    --ink-2:      #C2CCD6;
+    --muted:      #94A2B0;
+    --rule:       #2A323A;
+    --rule-soft:  #212930;
+    --accent:     #6DA7EC;
+    --s-null:     #E46228;
+    --s-null-dim: #E4622833;
+    --s-swipe:    #3987E5;
+    --s-swipe-dim:#3987E533;
+    --flag:       #F0885A;
+  }
+}
+:root[data-theme="dark"] {
+  --paper:      #14181C;
+  --panel:      #191F24;
+  --ink:        #E6EBF0;
+  --ink-2:      #C2CCD6;
+  --muted:      #94A2B0;
+  --rule:       #2A323A;
+  --rule-soft:  #212930;
+  --accent:     #6DA7EC;
+  --s-null:     #E46228;
+  --s-null-dim: #E4622833;
+  --s-swipe:    #3987E5;
+  --s-swipe-dim:#3987E533;
+  --flag:       #F0885A;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--f-body);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+
+.wrap {
+  max-width: 78rem;
+  margin: 0 auto;
+  padding: 0 var(--gutter) 6rem;
+}
+
+/* ── Spine: a hairline that runs the document ─────────────────────────── */
+.spine { border-left: 1px solid var(--rule); padding-left: var(--gutter); }
+@media (max-width: 700px) { .spine { border-left: none; padding-left: 0; } }
+
+.col { max-width: var(--measure); }
+
+/* ── Masthead ─────────────────────────────────────────────────────────── */
+header.masthead { padding: clamp(2.5rem, 7vw, 5rem) 0 2rem; }
+
+.eyebrow {
+  font-family: var(--f-mono);
+  font-size: .72rem;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 0 0 1.4rem;
+}
+
+h1 {
+  font-family: var(--f-display);
+  font-weight: 700;
+  font-size: clamp(2.3rem, 6.2vw, 4rem);
+  line-height: 1.03;
+  letter-spacing: -.015em;
+  text-wrap: balance;
+  margin: 0 0 1rem;
+}
+
+.standfirst {
+  font-size: clamp(1.05rem, 2.1vw, 1.22rem);
+  line-height: 1.55;
+  color: var(--ink-2);
+  max-width: 54ch;
+  margin: 0 0 2rem;
+}
+
+.byline {
+  display: flex; flex-wrap: wrap; gap: .5rem 1.6rem;
+  font-family: var(--f-mono); font-size: .76rem;
+  color: var(--muted);
+  border-top: 1px solid var(--rule);
+  padding-top: 1rem;
+}
+.byline b { font-weight: 500; color: var(--ink-2); }
+
+/* ── Verdict band ─────────────────────────────────────────────────────── */
+.verdict {
+  margin: 2.5rem 0 3.5rem;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--s-null);
+  background: var(--panel);
+  padding: clamp(1.3rem, 3vw, 2rem);
+}
+.verdict h2 {
+  font-family: var(--f-mono);
+  font-size: .72rem; letter-spacing: .16em; text-transform: uppercase;
+  color: var(--muted); font-weight: 500; margin: 0 0 .9rem;
+}
+.verdict p {
+  font-family: var(--f-display); font-weight: 500;
+  font-size: clamp(1.15rem, 2.7vw, 1.55rem);
+  line-height: 1.35; margin: 0; text-wrap: balance;
+  max-width: 46ch;
+}
+.verdict p em { font-style: normal; color: var(--s-null); font-weight: 600; }
+
+/* ── Headline figures ─────────────────────────────────────────────────── */
+.figures {
+  display: grid; gap: 1px;
+  grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+  background: var(--rule);
+  border: 1px solid var(--rule);
+  margin: 0 0 3.5rem;
+}
+.fig-cell { background: var(--panel); padding: 1.3rem 1.2rem; }
+.fig-num {
+  font-family: var(--f-display); font-weight: 600;
+  font-size: clamp(1.9rem, 4.6vw, 2.5rem); line-height: 1;
+  letter-spacing: -.02em;
+  font-variant-numeric: tabular-nums;
+  display: block; margin-bottom: .45rem;
+}
+.fig-cell.hot .fig-num { color: var(--s-null); }
+.fig-cell.cool .fig-num { color: var(--s-swipe); }
+.fig-lab {
+  font-family: var(--f-mono); font-size: .7rem;
+  letter-spacing: .09em; text-transform: uppercase; color: var(--muted);
+  line-height: 1.45;
+}
+
+/* ── Sections ─────────────────────────────────────────────────────────── */
+section { margin: 0 0 3.4rem; }
+
+h2.sec {
+  font-family: var(--f-display); font-weight: 600;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  letter-spacing: -.01em; margin: 0 0 1.1rem;
+  display: flex; align-items: baseline; gap: .8rem;
+  text-wrap: balance;
+}
+h2.sec .n {
+  font-family: var(--f-mono); font-size: .78rem; font-weight: 500;
+  color: var(--s-swipe); letter-spacing: .05em;
+  flex: none; padding-top: .1rem;
+}
+
+h3.sub {
+  font-family: var(--f-display); font-weight: 600;
+  font-size: 1.02rem; letter-spacing: .01em;
+  margin: 2rem 0 .6rem; color: var(--ink);
+}
+
+p { margin: 0 0 1.05rem; }
+.col p:last-child { margin-bottom: 0; }
+
+a { color: var(--accent); text-underline-offset: .17em; }
+a:focus-visible, button:focus-visible {
+  outline: 2px solid var(--accent); outline-offset: 3px; border-radius: 2px;
+}
+
+code, .mono { font-family: var(--f-mono); font-size: .88em; }
+code {
+  background: var(--rule-soft); padding: .1em .38em;
+  border-radius: 3px; color: var(--ink-2);
+}
+
+strong { font-weight: 600; }
+.flag { color: var(--flag); font-weight: 600; }
+
+ul.tight { margin: 0 0 1.05rem; padding-left: 1.15rem; }
+ul.tight li { margin-bottom: .45rem; }
+
+/* ── Figure frames ────────────────────────────────────────────────────── */
+figure {
+  margin: 2rem 0 2.4rem;
+  border: 1px solid var(--rule);
+  background: var(--panel);
+}
+figure .fig-head {
+  display: flex; flex-wrap: wrap; gap: .5rem 1rem;
+  align-items: baseline; justify-content: space-between;
+  padding: .85rem 1.1rem; border-bottom: 1px solid var(--rule-soft);
+}
+figure .fig-id {
+  font-family: var(--f-mono); font-size: .72rem;
+  letter-spacing: .13em; text-transform: uppercase; color: var(--muted);
+}
+figure .fig-title {
+  font-family: var(--f-display); font-weight: 600; font-size: .98rem;
+}
+.chart-scroll { overflow-x: auto; padding: 1.1rem .6rem .4rem; }
+figcaption {
+  padding: .5rem 1.1rem 1.1rem;
+  font-size: .87rem; line-height: 1.55; color: var(--muted);
+  max-width: 74ch;
+}
+figcaption b { color: var(--ink-2); font-weight: 600; }
+
+.panels { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); }
+.panels > div { min-width: 0; }
+.panels > div + div { border-left: 1px solid var(--rule-soft); }
+@media (max-width: 760px) {
+  .panels > div + div { border-left: none; border-top: 1px solid var(--rule-soft); }
+}
+
+.panel-h {
+  font-family: var(--f-mono); font-size: .73rem; letter-spacing: .08em;
+  text-transform: uppercase; padding: .9rem 1.1rem .1rem;
+  display: flex; align-items: center; gap: .5rem;
+}
+.swatch { width: 10px; height: 10px; flex: none; border-radius: 2px; }
+
+/* ── Tables ───────────────────────────────────────────────────────────── */
+.table-scroll { overflow-x: auto; }
+table {
+  width: 100%; border-collapse: collapse;
+  font-family: var(--f-mono); font-size: .81rem;
+  font-variant-numeric: tabular-nums;
+}
+th, td { padding: .5rem .7rem; text-align: right; border-bottom: 1px solid var(--rule-soft); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th {
+  font-weight: 500; color: var(--muted); font-size: .69rem;
+  letter-spacing: .09em; text-transform: uppercase;
+  border-bottom: 1px solid var(--rule);
+}
+tbody tr:last-child td { border-bottom: none; }
+tr.best td { background: var(--s-swipe-dim); }
+td.win { color: var(--s-null); font-weight: 500; }
+
+details.tableview { border-top: 1px solid var(--rule-soft); }
+details.tableview summary {
+  cursor: pointer; padding: .7rem 1.1rem;
+  font-family: var(--f-mono); font-size: .73rem;
+  letter-spacing: .08em; text-transform: uppercase; color: var(--muted);
+}
+details.tableview summary:hover { color: var(--ink); }
+details.tableview .table-scroll { padding: 0 1.1rem 1.1rem; }
+
+/* ── Tooltip ──────────────────────────────────────────────────────────── */
+.tip {
+  position: fixed; pointer-events: none; opacity: 0;
+  transition: opacity .09s ease;
+  background: var(--ink); color: var(--paper);
+  font-family: var(--f-mono); font-size: .74rem; line-height: 1.5;
+  padding: .45rem .6rem; border-radius: 4px; z-index: 40;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.tip.on { opacity: 1; }
+
+/* ── Callout ──────────────────────────────────────────────────────────── */
+.callout {
+  border: 1px solid var(--rule); border-left: 3px solid var(--s-swipe);
+  background: var(--panel); padding: 1.1rem 1.2rem; margin: 1.6rem 0;
+}
+.callout .lab {
+  font-family: var(--f-mono); font-size: .69rem; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--muted); display: block; margin-bottom: .5rem;
+}
+.callout p { margin: 0; font-size: .95rem; }
+.callout.warn { border-left-color: var(--s-null); }
+
+pre {
+  font-family: var(--f-mono); font-size: .79rem; line-height: 1.7;
+  background: var(--panel); border: 1px solid var(--rule);
+  padding: .95rem 1.1rem; overflow-x: auto; margin: 1.1rem 0;
+  color: var(--ink-2);
+}
+pre .c { color: var(--muted); }
+
+footer {
+  border-top: 1px solid var(--rule); margin-top: 3rem; padding-top: 1.2rem;
+  font-family: var(--f-mono); font-size: .73rem; color: var(--muted);
+  line-height: 1.7;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * { animation: none !important; transition: none !important; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="masthead">
+  <p class="eyebrow">Studienprojekt &middot; Gesture recognition &middot; Experiment note</p>
+  <h1>Where the Next Clip Counts</h1>
+  <p class="standfirst">
+    The dataset has 697 swipe recordings and 29 of everything else. This measures
+    which of those two numbers is actually holding the model back &mdash; and
+    therefore where the next hour of recording should go.
+  </p>
+  <div class="byline">
+    <span><b>Model</b> landmark-only transformer, 1.43M param</span>
+    <span><b>Protocol</b> 5-fold CV &times; 3 repeats</span>
+    <span><b>Runs</b> <span id="total-runs">&mdash;</span></span>
+    <span><b>Date</b> 27 Aug 2026</span>
+  </div>
+</header>
+
+<div class="spine">
+
+<div class="verdict">
+  <h2>Finding</h2>
+  <p id="verdict-text">&mdash;</p>
+</div>
+
+<div class="figures" id="headline"></div>
+
+<div class="col">
+<section>
+  <h2 class="sec"><span class="n">01</span> The question</h2>
+  <p>
+    The classifier recognises three things: a leftward swipe, a rightward swipe,
+    and <code>null</code> &mdash; meaning &ldquo;a hand is visible but this is not a
+    deliberate gesture.&rdquo; <code>null</code> is the class that stops the mirror
+    reacting when someone simply walks past it or scratches their face.
+  </p>
+  <p>
+    Collection so far has been lopsided: 350 left swipes, 347 right swipes, and 29
+    usable <code>null</code> clips. The intuitive response is to record more of
+    everything. That is expensive, and probably wrong &mdash; a class with 350
+    examples and a class with 29 are unlikely to benefit equally from one more clip.
+  </p>
+  <p>
+    So rather than guess, this experiment starves each class in turn and measures
+    what happens. Two curves: one holds swipes fixed and varies <code>null</code>,
+    the other holds <code>null</code> fixed and varies swipes. Comparing how much each
+    curve rises per clip added is what tells us where recording effort pays.
+  </p>
+</section>
+
+<section>
+  <h2 class="sec"><span class="n">02</span> Method</h2>
+  <p>
+    Every configuration is evaluated with <b>5-fold cross-validation repeated 3
+    times</b> &mdash; 15 independent trainings, each reported as a mean with one
+    standard deviation. This is not ceremony. With 29 <code>null</code> clips, a
+    single 70/15/15 split leaves roughly four of them in the test set, so
+    <code>null</code> recall can only take values like 0%, 25%, 50%, 75% or 100%.
+    Differences between configurations vanish into that quantisation.
+  </p>
+
+  <div class="callout warn">
+    <span class="lab">Why this mattered</span>
+    <p>
+      On a single split, adding class weights looked worth <b>0.6 points</b>
+      (84.6% &rarr; 84.0%) &mdash; indistinguishable from noise, and easy to dismiss.
+      Under cross-validation the same comparison is worth <b>2&ndash;4 points</b> and
+      holds at every model size tested. The single split was not wrong so much as
+      blind.
+    </p>
+  </div>
+
+  <h3 class="sub">Balanced accuracy, not accuracy</h3>
+  <p>
+    With 350/347/29, plain accuracy is close to useless as a target. A model that
+    predicts <code>null</code> <em>correctly zero times</em> still scores
+    <b>95.2%</b> overall, because <code>null</code> is 4% of the data. Selecting
+    checkpoints on that number actively favours the model that cannot do
+    <code>null</code>'s only job.
+  </p>
+  <p>
+    Everything below is therefore reported as <b>balanced accuracy</b> &mdash; the
+    mean of the three per-class recalls, which weights <code>null</code> equally
+    with the two swipe classes.
+  </p>
+
+  <h3 class="sub">Splitting</h3>
+  <p>
+    Folds are drawn over whole recordings, and augmentation is applied inside the
+    training fold only. An earlier version of this pipeline pre-augmented every clip
+    to disk and split afterwards, which put augmented copies of validation clips
+    into training and produced a meaningless 100% validation score.
+  </p>
+</section>
+
+<section>
+  <h2 class="sec"><span class="n">03</span> Results</h2>
+</section>
+</div>
+
+<figure>
+  <div class="fig-head">
+    <span class="fig-id">Figure 1</span>
+    <span class="fig-title">Balanced accuracy against training-set size, by class</span>
+  </div>
+  <div class="panels">
+    <div>
+      <div class="panel-h"><span class="swatch" style="background:var(--s-null)"></span> A &mdash; varying <code>null</code></div>
+      <div class="chart-scroll"><svg id="chartA" role="img" aria-label="Balanced accuracy rising steeply as null clips increase from 8 to 29"></svg></div>
+    </div>
+    <div>
+      <div class="panel-h"><span class="swatch" style="background:var(--s-swipe)"></span> B &mdash; varying swipes</div>
+      <div class="chart-scroll"><svg id="chartB" role="img" aria-label="Balanced accuracy rising slowly as swipe clips increase from 104 to 697"></svg></div>
+    </div>
+  </div>
+  <figcaption id="fig1cap">
+    <b>Both panels share a vertical scale</b>, so the difference in slope is the
+    result. Bands show &plusmn;1 standard deviation across 15 runs.
+  </figcaption>
+  <details class="tableview">
+    <summary>Show data table</summary>
+    <div class="table-scroll"><table id="tbl-scale">
+      <thead><tr><th>Curve</th><th>Clips</th><th>Balanced acc.</th><th>&plusmn;1 SD</th><th><code>null</code> recall</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </details>
+</figure>
+
+<div class="col">
+<section>
+  <h3 class="sub">Class weighting</h3>
+  <p>
+    A separate sweep over four model sizes, each at 25 runs, isolates the effect of
+    inverse-frequency loss weighting. It is worth having at every size, and the
+    benefit arrives entirely through <code>null</code>:
+  </p>
+</section>
+</div>
+
+<figure>
+  <div class="fig-head">
+    <span class="fig-id">Figure 2</span>
+    <span class="fig-title">Effect of class weighting on <code>null</code> recall</span>
+  </div>
+  <div class="chart-scroll"><svg id="chartW" role="img" aria-label="Bar chart comparing null recall with and without class weighting at four model sizes"></svg></div>
+  <figcaption>
+    Four architectures, 25 runs each. Weighting never costs more than a point of
+    plain accuracy and returns <b>5 to 9 points</b> of <code>null</code> recall.
+    The largest model without weighting has the highest plain accuracy in the whole
+    sweep and one of the worst <code>null</code> recalls &mdash; the clearest single
+    illustration of why plain accuracy was abandoned as a target.
+  </figcaption>
+  <details class="tableview">
+    <summary>Show data table</summary>
+    <div class="table-scroll"><table id="tbl-w">
+      <thead><tr><th>Architecture</th><th>Params</th><th>Weighting</th><th>Balanced</th><th>Plain acc.</th><th><code>null</code> recall</th></tr></thead>
+      <tbody></tbody>
+    </table></div>
+  </details>
+</figure>
+
+<div class="col">
+<section>
+  <h2 class="sec"><span class="n">04</span> What this means for collection</h2>
+  <p id="interp-1">&mdash;</p>
+  <p>
+    There is a second, sharper finding underneath the counts. Auditing the 35
+    recorded <code>null</code> clips by how many frames actually contain a detected
+    hand:
+  </p>
+</section>
+</div>
+
+<figure>
+  <div class="fig-head">
+    <span class="fig-id">Figure 3</span>
+    <span class="fig-title">What the <code>null</code> clips actually contain</span>
+  </div>
+  <div class="chart-scroll"><svg id="chartN" role="img" aria-label="Breakdown of 35 null clips by how many frames contain a detected hand"></svg></div>
+  <figcaption>
+    MediaPipe finds no hand in <b>75.3%</b> of <code>null</code> frames, against
+    13&ndash;15% for the swipe classes. Only five clips have a hand present in at
+    least half their frames &mdash; and of those, <b>one</b> is held out from
+    training.
+  </figcaption>
+</figure>
+
+<div class="col">
+<section>
+  <p>
+    This matters because inference already has a <b>hand-presence gate</b>: if fewer
+    than 15 of 30 frames contain a detected hand, the window is reported as
+    <code>null</code> without the model running at all. That rule is deterministic
+    and cannot be wrong.
+  </p>
+  <p>
+    So 30 of the 35 <code>null</code> clips train the model on a decision it never
+    gets to make. The remaining five carry the case that can actually produce a
+    false trigger: <em>a hand clearly in frame, moving, but not swiping</em>.
+    The measured <code>null</code> recall of 77% is largely the model learning to
+    recognise an empty room.
+  </p>
+
+  <div class="callout">
+    <span class="lab">Recommendation</span>
+    <p>
+      Record roughly <b>100 <code>null</code> clips with the hand visible throughout</b>
+      &mdash; reaching across the mirror, adjusting hair or glasses, gesturing while
+      talking, hovering, drifting diagonally, and starting a swipe then stopping.
+      The near-misses are the valuable ones; clips of an empty room add nothing the
+      gate does not already handle. More swipes would still help, but at roughly
+      1/27 the rate per clip &mdash; so <code>null</code> comes first.
+    </p>
+  </div>
+</section>
+
+<section>
+  <h2 class="sec"><span class="n">05</span> Limitations</h2>
+  <ul class="tight">
+    <li>
+      All recordings come from <b>one person, in one room</b>. Cross-validation
+      measures generalisation to unseen <em>clips</em>, not to unseen <em>people</em>.
+      The numbers here are an upper bound on what a stranger would experience.
+    </li>
+    <li>
+      Curve A's right-hand end is 29 clips. Extrapolating it to 100 assumes the trend
+      continues; it establishes that the curve has <em>not</em> flattened, not where
+      it eventually will.
+    </li>
+    <li>
+      Panel B reduces swipes by random subsampling, which preserves the variety of
+      the full set. Collecting 100 swipes from scratch would likely be less diverse
+      than 100 sampled from 697, so B is a mildly optimistic view of small swipe sets.
+    </li>
+    <li>
+      <code>swipe_up</code> and <code>swipe_down</code> were dropped from the class
+      list; two interface actions currently bound to them are inactive.
+    </li>
+  </ul>
+</section>
+
+<section>
+  <h2 class="sec"><span class="n">06</span> Reproducing this</h2>
+<pre><span class="c"># landmark cache (~4 MB, no video frames stored)</span>
+python preprocess_landmarks.py
+
+<span class="c"># Figure 1 — the two scaling curves</span>
+python scaling_study.py --folds 5 --repeats 3 --epochs 80 \
+    --d-model 192 --layers 3 --nhead 6
+
+<span class="c"># Figure 2 — architecture x class weighting</span>
+python experiments.py --folds 5 --repeats 5 --epochs 100
+
+<span class="c"># Figure 3 — what the null clips contain</span>
+python audit_null.py
+
+<span class="c"># encoding regression tests</span>
+python test_pipeline.py</pre>
+  <p style="font-size:.9rem;color:var(--muted)">
+    Seeds are fixed, so the fold assignments and reported means reproduce exactly.
+  </p>
+</section>
+</div>
+
+<footer>
+  Hochschule Landshut &middot; MagicMirror Studienprojekt<br>
+  Landmark-only pipeline &middot; 726 clips &middot; MediaPipe 21-point hand landmarks &middot; RTX 4090
+</footer>
+
+</div><!-- /spine -->
+</div><!-- /wrap -->
+
+<div class="tip" id="tip"></div>
+
+<script>
+// ─── Data ────────────────────────────────────────────────────────────────
+const DATA = {
+  "A": [
+    {
+      "x": 8,
+      "y": 78.1,
+      "sd": 10.3,
+      "nr": 66.7
+    },
+    {
+      "x": 14,
+      "y": 78.4,
+      "sd": 12.1,
+      "nr": 64.3
+    },
+    {
+      "x": 20,
+      "y": 78.9,
+      "sd": 9.1,
+      "nr": 60.0
+    },
+    {
+      "x": 25,
+      "y": 85.9,
+      "sd": 6.1,
+      "nr": 78.7
+    },
+    {
+      "x": 29,
+      "y": 86.8,
+      "sd": 6.6,
+      "nr": 79.3
+    }
+  ],
+  "B": [
+    {
+      "x": 104,
+      "y": 77.8,
+      "sd": 9.3,
+      "nr": 81.6
+    },
+    {
+      "x": 209,
+      "y": 83.3,
+      "sd": 7.6,
+      "nr": 79.3
+    },
+    {
+      "x": 348,
+      "y": 85.2,
+      "sd": 5.5,
+      "nr": 81.6
+    },
+    {
+      "x": 522,
+      "y": 85.2,
+      "sd": 7.2,
+      "nr": 73.6
+    },
+    {
+      "x": 697,
+      "y": 86.8,
+      "sd": 6.6,
+      "nr": 79.3
+    }
+  ],
+  "totalRuns": "150 (Fig. 1) + 200 (Fig. 2)",
+  "ratio": 27,
+  "weights": [
+    {
+      "name": "tiny",
+      "params": "115K",
+      "on": 73,
+      "off": 64,
+      "balOn": 83.7,
+      "balOff": 81.3,
+      "accOn": 88.4,
+      "accOff": 88.8
+    },
+    {
+      "name": "small",
+      "params": "642K",
+      "on": 76,
+      "off": 70,
+      "balOn": 85.0,
+      "balOff": 82.9,
+      "accOn": 89.1,
+      "accOff": 88.4
+    },
+    {
+      "name": "wide",
+      "params": "1.43M",
+      "on": 77,
+      "off": 68,
+      "balOn": 86.3,
+      "balOff": 82.4,
+      "accOn": 90.6,
+      "accOff": 89.0
+    },
+    {
+      "name": "medium",
+      "params": "3.32M",
+      "on": 72,
+      "off": 67,
+      "balOn": 84.4,
+      "balOff": 83.2,
+      "accOn": 89.8,
+      "accOff": 90.2
+    }
+  ],
+  "verdict": "A <em>null</em> recording is worth about <em>27&times; more per clip</em> than another swipe. Both classes still improve the model &mdash; but matching what 21 null clips gave took 593 extra swipes.",
+  "interp": "Both curves rise, so neither class is saturated. What separates them is cost. Going from 8 to 29 <code>null</code> clips bought <b>8.7 points</b> of balanced accuracy for <b>21 recordings</b>. Going from 104 to 697 swipes bought a near-identical <b>9.0 points</b> &mdash; for <b>593 recordings</b>. That is <b>0.41</b> points per <code>null</code> clip against <b>0.015</b> per swipe clip, a factor of roughly <b>27</b>. An hour spent recording <code>null</code> is worth something close to a day spent recording swipes."
+};
+
+const tip = document.getElementById('tip');
+function showTip(e, html) {
+  tip.innerHTML = html; tip.classList.add('on');
+  const pad = 14, r = tip.getBoundingClientRect();
+  let x = e.clientX + pad, y = e.clientY - r.height - pad;
+  if (x + r.width > innerWidth - 8) x = e.clientX - r.width - pad;
+  if (y < 8) y = e.clientY + pad;
+  tip.style.left = x + 'px'; tip.style.top = y + 'px';
+}
+function hideTip() { tip.classList.remove('on'); }
+
+const NS = 'http://www.w3.org/2000/svg';
+const el = (n, a = {}) => {
+  const e = document.createElementNS(NS, n);
+  for (const k in a) e.setAttribute(k, a[k]);
+  return e;
+};
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+// ─── Line chart with error band ──────────────────────────────────────────
+function lineChart(svgId, pts, opts) {
+  const svg = document.getElementById(svgId);
+  svg.innerHTML = '';
+  const W = opts.width || 420, H = 250;
+  const m = { t: 14, r: 18, b: 42, l: 46 };
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('style', `max-width:${W}px;height:auto;display:block;margin:0 auto`);
+
+  const xs = pts.map(p => p.x);
+  const xMin = Math.min(...xs), xMax = Math.max(...xs);
+  const [yMin, yMax] = opts.yDomain;
+  const X = v => m.l + (v - xMin) / (xMax - xMin || 1) * (W - m.l - m.r);
+  const Y = v => H - m.b - (v - yMin) / (yMax - yMin) * (H - m.t - m.b);
+
+  // grid + y axis
+  for (let v = yMin; v <= yMax + .001; v += opts.yStep) {
+    svg.appendChild(el('line', {
+      x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v),
+      stroke: css('--rule-soft'), 'stroke-width': 1
+    }));
+    const t = el('text', {
+      x: m.l - 9, y: Y(v) + 3.5, 'text-anchor': 'end',
+      fill: css('--muted'), 'font-size': 10.5,
+      'font-family': 'IBM Plex Mono, monospace'
+    });
+    t.textContent = v + '%';
+    svg.appendChild(t);
+  }
+
+  // error band
+  const bandTop = pts.map(p => `${X(p.x)},${Y(Math.min(yMax, p.y + p.sd))}`);
+  const bandBot = pts.map(p => `${X(p.x)},${Y(Math.max(yMin, p.y - p.sd))}`).reverse();
+  svg.appendChild(el('polygon', {
+    points: [...bandTop, ...bandBot].join(' '),
+    fill: opts.dim, stroke: 'none'
+  }));
+
+  // line — 2px per mark spec
+  svg.appendChild(el('polyline', {
+    points: pts.map(p => `${X(p.x)},${Y(p.y)}`).join(' '),
+    fill: 'none', stroke: opts.color, 'stroke-width': 2,
+    'stroke-linejoin': 'round', 'stroke-linecap': 'round'
+  }));
+
+  pts.forEach((p, i) => {
+    // 2px surface ring so overlapping marks stay separable
+    svg.appendChild(el('circle', {
+      cx: X(p.x), cy: Y(p.y), r: 5,
+      fill: opts.color, stroke: css('--panel'), 'stroke-width': 2
+    }));
+    // x label
+    const xt = el('text', {
+      x: X(p.x), y: H - m.b + 17, 'text-anchor': 'middle',
+      fill: css('--muted'), 'font-size': 10.5,
+      'font-family': 'IBM Plex Mono, monospace'
+    });
+    xt.textContent = p.x;
+    svg.appendChild(xt);
+
+    // direct-label the endpoints only, never every point
+    if (i === 0 || i === pts.length - 1) {
+      const lt = el('text', {
+        x: X(p.x), y: Y(p.y) - 12, 'text-anchor': i === 0 ? 'start' : 'end',
+        fill: opts.color, 'font-size': 11.5, 'font-weight': 600,
+        'font-family': 'IBM Plex Mono, monospace'
+      });
+      lt.textContent = p.y.toFixed(1) + '%';
+      svg.appendChild(lt);
+    }
+
+    // generous hit target
+    const hit = el('circle', { cx: X(p.x), cy: Y(p.y), r: 18, fill: 'transparent' });
+    hit.style.cursor = 'crosshair';
+    hit.addEventListener('mousemove', e => showTip(e,
+      `<b>${p.x} ${opts.unit}</b><br>balanced ${p.y.toFixed(1)}% &plusmn;${p.sd.toFixed(1)}<br>null recall ${p.nr.toFixed(0)}%`));
+    hit.addEventListener('mouseleave', hideTip);
+    svg.appendChild(hit);
+  });
+
+  // axis title
+  const at = el('text', {
+    x: m.l + (W - m.l - m.r) / 2, y: H - 6, 'text-anchor': 'middle',
+    fill: css('--muted'), 'font-size': 10.5,
+    'font-family': 'IBM Plex Mono, monospace', 'letter-spacing': '.06em'
+  });
+  at.textContent = opts.xTitle;
+  svg.appendChild(at);
+}
+
+// ─── Grouped bars: class weighting ───────────────────────────────────────
+function weightChart(svgId, rows) {
+  const svg = document.getElementById(svgId);
+  svg.innerHTML = '';
+  const W = 720, H = 280, m = { t: 30, r: 16, b: 52, l: 46 };
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('style', `max-width:${W}px;height:auto;display:block;margin:0 auto`);
+
+  const yMax = 100;
+  const Y = v => H - m.b - v / yMax * (H - m.t - m.b);
+  for (let v = 0; v <= yMax; v += 25) {
+    svg.appendChild(el('line', {
+      x1: m.l, x2: W - m.r, y1: Y(v), y2: Y(v),
+      stroke: css('--rule-soft'), 'stroke-width': 1
+    }));
+    const t = el('text', {
+      x: m.l - 9, y: Y(v) + 3.5, 'text-anchor': 'end', fill: css('--muted'),
+      'font-size': 10.5, 'font-family': 'IBM Plex Mono, monospace'
+    });
+    t.textContent = v + '%';
+    svg.appendChild(t);
+  }
+
+  const gw = (W - m.l - m.r) / rows.length;
+  const bw = Math.min(38, gw / 2 - 8);
+  rows.forEach((r, i) => {
+    const cx = m.l + gw * i + gw / 2;
+    [['on', r.on, css('--s-null')], ['off', r.off, css('--s-swipe')]].forEach(([k, v, colr], j) => {
+      // 2px surface gap between adjacent bars
+      const x = cx - bw - 1 + j * (bw + 2);
+      const rect = el('rect', {
+        x, y: Y(v), width: bw, height: Y(0) - Y(v),
+        fill: colr, rx: 4
+      });
+      rect.style.cursor = 'pointer';
+      rect.addEventListener('mousemove', e => showTip(e,
+        `<b>${r.name}</b> &middot; weights ${k}<br>null recall ${v}%<br>balanced ${k === 'on' ? r.balOn : r.balOff}%`));
+      rect.addEventListener('mouseleave', hideTip);
+      svg.appendChild(rect);
+
+      const vt = el('text', {
+        x: x + bw / 2, y: Y(v) - 7, 'text-anchor': 'middle',
+        fill: colr, 'font-size': 11, 'font-weight': 600,
+        'font-family': 'IBM Plex Mono, monospace'
+      });
+      vt.textContent = v + '%';
+      svg.appendChild(vt);
+    });
+
+    const nt = el('text', {
+      x: cx, y: H - m.b + 18, 'text-anchor': 'middle', fill: css('--ink-2'),
+      'font-size': 11.5, 'font-family': 'IBM Plex Sans Condensed, sans-serif', 'font-weight': 600
+    });
+    nt.textContent = r.name;
+    svg.appendChild(nt);
+    const pt = el('text', {
+      x: cx, y: H - m.b + 32, 'text-anchor': 'middle', fill: css('--muted'),
+      'font-size': 9.5, 'font-family': 'IBM Plex Mono, monospace'
+    });
+    pt.textContent = r.params;
+    svg.appendChild(pt);
+  });
+
+  // legend — always present for 2 series
+  [['weights on', css('--s-null'), 0], ['weights off', css('--s-swipe'), 118]].forEach(([lab, colr, dx]) => {
+    svg.appendChild(el('rect', { x: m.l + dx, y: 10, width: 10, height: 10, fill: colr, rx: 2 }));
+    const t = el('text', {
+      x: m.l + dx + 15, y: 19, fill: css('--muted'), 'font-size': 10.5,
+      'font-family': 'IBM Plex Mono, monospace'
+    });
+    t.textContent = lab;
+    svg.appendChild(t);
+  });
+
+  const yl = el('text', {
+    x: m.l + (W - m.l - m.r) / 2, y: H - 6, 'text-anchor': 'middle',
+    fill: css('--muted'), 'font-size': 10.5,
+    'font-family': 'IBM Plex Mono, monospace', 'letter-spacing': '.06em'
+  });
+  yl.textContent = 'null recall, mean of 25 runs';
+  svg.appendChild(yl);
+}
+
+// ─── Stacked composition bar: what null clips contain ────────────────────
+function nullChart(svgId, segs) {
+  const svg = document.getElementById(svgId);
+  svg.innerHTML = '';
+  const W = 720, H = 150, m = { t: 26, r: 16, b: 40, l: 16 };
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.setAttribute('width', '100%');
+  svg.setAttribute('style', `max-width:${W}px;height:auto;display:block;margin:0 auto`);
+
+  const total = segs.reduce((s, x) => s + x.n, 0);
+  const bw = W - m.l - m.r;
+  let x = m.l;
+  segs.forEach(s => {
+    const w = s.n / total * bw;
+    const rect = el('rect', {
+      x, y: m.t, width: Math.max(0, w - 2), height: 46,
+      fill: s.color, rx: 3
+    });
+    rect.style.cursor = 'pointer';
+    rect.addEventListener('mousemove', e => showTip(e, `<b>${s.n} clips</b><br>${s.tip}`));
+    rect.addEventListener('mouseleave', hideTip);
+    svg.appendChild(rect);
+
+    const nt = el('text', {
+      x: x + (w - 2) / 2, y: m.t + 29, 'text-anchor': 'middle',
+      fill: s.fg, 'font-size': 15, 'font-weight': 700,
+      'font-family': 'IBM Plex Sans Condensed, sans-serif'
+    });
+    nt.textContent = s.n;
+    svg.appendChild(nt);
+
+    const lt = el('text', {
+      x: x + (w - 2) / 2, y: m.t + 68, 'text-anchor': 'middle',
+      fill: css('--muted'), 'font-size': 10,
+      'font-family': 'IBM Plex Mono, monospace'
+    });
+    lt.textContent = s.label;
+    svg.appendChild(lt);
+
+    const lt2 = el('text', {
+      x: x + (w - 2) / 2, y: m.t + 82, 'text-anchor': 'middle',
+      fill: css('--muted'), 'font-size': 10,
+      'font-family': 'IBM Plex Mono, monospace'
+    });
+    lt2.textContent = s.label2 || '';
+    svg.appendChild(lt2);
+
+    x += w;
+  });
+
+  const cap = el('text', {
+    x: m.l, y: 16, fill: css('--muted'), 'font-size': 10.5,
+    'font-family': 'IBM Plex Mono, monospace', 'letter-spacing': '.06em'
+  });
+  cap.textContent = '35 RECORDED null CLIPS, BY FRAMES CONTAINING A DETECTED HAND';
+  svg.appendChild(cap);
+}
+
+// ─── Render ──────────────────────────────────────────────────────────────
+function render() {
+  const A = DATA.A, B = DATA.B;
+  const all = [...A, ...B];
+  const lo = Math.floor((Math.min(...all.map(p => p.y - p.sd)) - 2) / 5) * 5;
+  const hi = Math.min(100, Math.ceil((Math.max(...all.map(p => p.y + p.sd)) + 2) / 5) * 5);
+  const dom = [Math.max(0, lo), hi];
+
+  lineChart('chartA', A, {
+    yDomain: dom, yStep: 5, color: css('--s-null'), dim: css('--s-null-dim'),
+    xTitle: 'null CLIPS IN TRAINING SET', unit: 'null clips'
+  });
+  lineChart('chartB', B, {
+    yDomain: dom, yStep: 5, color: css('--s-swipe'), dim: css('--s-swipe-dim'),
+    xTitle: 'SWIPE CLIPS IN TRAINING SET', unit: 'swipe clips'
+  });
+
+  weightChart('chartW', DATA.weights);
+
+  nullChart('chartN', [
+    { n: 6, color: css('--rule'), fg: css('--ink-2'), label: 'no hand at all', label2: 'dropped', tip: 'No hand detected in any frame — discarded at preprocessing' },
+    { n: 24, color: css('--s-swipe'), fg: '#fff', label: 'hand in 1–14 frames', label2: 'gate handles these', tip: 'Gated at inference before the model runs' },
+    { n: 5, color: css('--s-null'), fg: '#fff', label: 'hand in ≥15 frames', label2: 'the useful ones', tip: 'The only clips that test the model on a real false-positive case' },
+  ]);
+
+  // headline figures
+  const aFirst = A[0], aLast = A[A.length - 1];
+  const bFirst = B[0], bLast = B[B.length - 1];
+  const aGain = aLast.y - aFirst.y, bGain = bLast.y - bFirst.y;
+  const aClips = aLast.x - aFirst.x, bClips = bLast.x - bFirst.x;
+
+  document.getElementById('total-runs').textContent = DATA.totalRuns;
+
+  document.getElementById('headline').innerHTML = `
+    <div class="fig-cell hot">
+      <span class="fig-num">${aGain >= 0 ? '+' : ''}${aGain.toFixed(1)}</span>
+      <span class="fig-lab">points of balanced accuracy<br>from ${aClips} more null clips</span>
+    </div>
+    <div class="fig-cell cool">
+      <span class="fig-num">${bGain >= 0 ? '+' : ''}${bGain.toFixed(1)}</span>
+      <span class="fig-lab">points from ${bClips} more<br>swipe clips</span>
+    </div>
+    <div class="fig-cell">
+      <span class="fig-num">${DATA.ratio}&times;</span>
+      <span class="fig-lab">more accuracy per clip<br>recording null instead</span>
+    </div>
+    <div class="fig-cell hot">
+      <span class="fig-num">5</span>
+      <span class="fig-lab">of 35 null clips actually<br>test the model</span>
+    </div>`;
+
+  document.getElementById('verdict-text').innerHTML = DATA.verdict;
+  document.getElementById('interp-1').innerHTML = DATA.interp;
+
+  // tables
+  const tb = document.querySelector('#tbl-scale tbody');
+  tb.innerHTML = [
+    ...A.map(p => `<tr><td>A · null</td><td>${p.x}</td><td>${p.y.toFixed(1)}%</td><td>±${p.sd.toFixed(1)}</td><td>${p.nr.toFixed(0)}%</td></tr>`),
+    ...B.map(p => `<tr><td>B · swipes</td><td>${p.x}</td><td>${p.y.toFixed(1)}%</td><td>±${p.sd.toFixed(1)}</td><td>${p.nr.toFixed(0)}%</td></tr>`)
+  ].join('');
+
+  const tw = document.querySelector('#tbl-w tbody');
+  tw.innerHTML = DATA.weights.map(r => `
+    <tr><td>${r.name}</td><td>${r.params}</td><td>on</td><td>${r.balOn}%</td><td>${r.accOn}%</td><td class="win">${r.on}%</td></tr>
+    <tr><td>${r.name}</td><td>${r.params}</td><td>off</td><td>${r.balOff}%</td><td>${r.accOff}%</td><td>${r.off}%</td></tr>`).join('');
+}
+
+render();
+addEventListener('resize', () => { hideTip(); });
+const mq = matchMedia('(prefers-color-scheme: dark)');
+mq.addEventListener && mq.addEventListener('change', render);
+</script>
+</body>
+</html>
