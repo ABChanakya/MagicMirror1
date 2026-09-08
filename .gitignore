@@ -18,8 +18,28 @@ camera/incoming_mac/
 # Pre-3-class clips, kept out of the way rather than deleted
 camera/old_data/
 
+# Anonymized recorded gesture clips — 560 MB+ of video, keep out of git
+camera/gesture_training_data_anon/
+
+# Generated reference character images for animation pipeline — 80+ MB of PNGs
+gesture_system/refs/
+
 # Per-machine camera pick from camera/collect_gesture_data.py cameras
 camera/.camera_choice.json
+
+# Any video/image anywhere, plus scratch review folders pulled from the
+# cluster for manual inspection — none of this belongs in the repo
+*.mp4
+*.avi
+*.mov
+*.mkv
+*.png
+*.jpg
+*.jpeg
+*.gif
+review_[0-9]*/
+animated_results/
+selftest_results/
 
 # macOS finder droppings
 .DS_Store

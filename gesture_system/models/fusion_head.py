@@ -102,11 +102,14 @@ class GestureRecognitionModel(nn.Module):
         fusion_dropout: float = 0.3,
         num_classes: int = 5,
         pretrained_swin: bool = True,
+        input_dim: int = 66,
     ):
         super().__init__()
 
+        # 66  = 63 hand-shape + 3 wrist-trajectory   (MediaPipe Hands)
+        # 174 = 168 body+hands shape + 6 wrist-trajectory (MediaPipe Holistic)
         self.landmark_encoder = LandmarkTransformer(
-            input_dim=66,   # 63 hand-shape + 3 wrist-trajectory channels
+            input_dim=input_dim,
             d_model=landmark_d_model,
             nhead=landmark_nhead,
             num_layers=landmark_num_layers,

@@ -120,11 +120,18 @@ def main():
               f"-> {classes[pred]:12} {conf*100:5.1f}%  {flag}")
 
     held_out = [s for s, _, _ in real if split_of.get(s) in ('TEST', 'val')]
-    print(f"\n    correct: {correct}/{len(real)}")
+    print(f"\n    correct: {correct}/{len(real)}  ({correct/len(real)*100:.0f}%)")
     print(f"    of these, held out from training: {len(held_out)}")
-    print(f"    would fire a spurious gesture: {would_fire}/{len(real)}")
-    print(f"\n  Caveat: {len(real)} clips is far too few to trust this number. It is")
-    print("  reported to show the size of the gap, not to certify the model.")
+    print(f"    would fire a spurious gesture: {would_fire}/{len(real)}  "
+          f"({would_fire/len(real)*100:.0f}%)")
+
+    if len(real) < 30:
+        print(f"\n  Caveat: {len(real)} clips is far too few to trust this number. It is")
+        print("  reported to show the size of the gap, not to certify the model.")
+    elif len(held_out) < 0.5 * len(real):
+        print(f"\n  Note: {len(real) - len(held_out)} of these {len(real)} clips are not held out from")
+        print("  the checkpoint being tested — either they were trained on, or they")
+        print("  postdate it. Retrain and re-run to measure this honestly.")
 
 
 if __name__ == '__main__':

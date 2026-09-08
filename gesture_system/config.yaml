@@ -52,10 +52,16 @@ training:
   precision: fp32
 
 inference:
-  confidence_threshold: 0.70
-  consecutive_predictions_required: 1
-  inference_every_n_frames: 1
-  cooldown_frames: 30
+  # These were set to fire as fast as possible (1 frame, 1 agreement, 0.70)
+  # which means ~30 evaluations per second, each able to fire on its own. A
+  # sliding 30-frame window always contains part of some movement, so that
+  # configuration triggers almost continuously. Requiring agreement across
+  # several evaluations is what separates a deliberate gesture from a hand
+  # passing through the window.
+  confidence_threshold: 0.90
+  consecutive_predictions_required: 3
+  inference_every_n_frames: 3
+  cooldown_frames: 45
   # Fraction of the 30-frame window that must contain a detected hand before
   # the model's prediction is trusted. Below this the window is reported as
   # `null` without running the model — otherwise an empty room produces

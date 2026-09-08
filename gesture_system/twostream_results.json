@@ -1,0 +1,13 @@
+[
+  {
+    "mode": "landmark",
+    "test_acc": 0.6558441558441559,
+    "test_balanced": 0.6692935523446021,
+    "per_class": {
+      "swipe_left": 0.8203125,
+      "swipe_right": 0.4732824427480916,
+      "null": 0.7142857142857143
+    },
+    "trainable": 1449987
+  }
+]

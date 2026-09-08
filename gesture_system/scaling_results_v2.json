@@ -1,0 +1,76 @@
+{
+  "classes": [
+    "swipe_left",
+    "swipe_right",
+    "null"
+  ],
+  "A_vary_null": [
+    {
+      "n_null": 27,
+      "balanced": 0.7732827237175063,
+      "balanced_std": 0.0934309153839979,
+      "null_recall": 0.5555555555555556
+    },
+    {
+      "n_null": 57,
+      "balanced": 0.8406752828491959,
+      "balanced_std": 0.04190465151341091,
+      "null_recall": 0.7777777777777778
+    },
+    {
+      "n_null": 102,
+      "balanced": 0.8612468368990108,
+      "balanced_std": 0.02642791781782614,
+      "null_recall": 0.7908496732026143
+    },
+    {
+      "n_null": 159,
+      "balanced": 0.8735313007858588,
+      "balanced_std": 0.03574386630973735,
+      "null_recall": 0.8637316561844863
+    },
+    {
+      "n_null": 227,
+      "balanced": 0.8721171689287631,
+      "balanced_std": 0.02079393480100236,
+      "null_recall": 0.8516886930983847
+    }
+  ],
+  "B_vary_swipe": [
+    {
+      "n_swipe": 104,
+      "frac": 0.15,
+      "balanced": 0.7771970916898454,
+      "balanced_std": 0.06953392301338697,
+      "null_recall": 0.9148311306901615
+    },
+    {
+      "n_swipe": 209,
+      "frac": 0.3,
+      "balanced": 0.8380361935434398,
+      "balanced_std": 0.039787031071050305,
+      "null_recall": 0.9030837004405287
+    },
+    {
+      "n_swipe": 348,
+      "frac": 0.5,
+      "balanced": 0.8612802157900197,
+      "balanced_std": 0.039348664906766785,
+      "null_recall": 0.8854625550660793
+    },
+    {
+      "n_swipe": 522,
+      "frac": 0.75,
+      "balanced": 0.8664127338040382,
+      "balanced_std": 0.026487013548527314,
+      "null_recall": 0.8751835535976505
+    },
+    {
+      "n_swipe": 697,
+      "frac": 1.0,
+      "balanced": 0.8721171689287631,
+      "balanced_std": 0.02079393480100236,
+      "null_recall": 0.8516886930983847
+    }
+  ]
+}

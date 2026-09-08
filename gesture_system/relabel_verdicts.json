@@ -1,0 +1,32 @@
+{
+  "swipe_left_chanakya_20260803-105744_002": {
+    "was": "swipe_left",
+    "should_be": "swipe_left",
+    "run": "20260803-105744",
+    "measured": "swipe_left"
+  },
+  "swipe_left_chanakya_20260803-105744_003": {
+    "was": "swipe_left",
+    "should_be": "swipe_left",
+    "run": "20260803-105744",
+    "measured": "swipe_left"
+  },
+  "swipe_left_chanakya_20260803-105850_003": {
+    "was": "swipe_left",
+    "should_be": "swipe_left",
+    "run": "20260803-105850",
+    "measured": "swipe_right"
+  },
+  "swipe_left_chanakya_20260816-141159_004": {
+    "was": "swipe_left",
+    "should_be": "swipe_left",
+    "run": "20260816-141159",
+    "measured": "swipe_left"
+  },
+  "swipe_left_chanakya_20260816-141159_005": {
+    "was": "swipe_left",
+    "should_be": "swipe_left",
+    "run": "20260816-141159",
+    "measured": "swipe_left"
+  }
+}

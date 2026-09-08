@@ -350,6 +350,9 @@ def run_inference(args):
 
     prediction_history: deque = deque(maxlen=consec_required)
     cooldown_frames = 0
+    # Edge-trigger latch: a gesture may fire only while armed, and `null` is
+    # what re-arms it. Starts True so the first gesture is not swallowed.
+    armed           = True
     frame_count     = 0
     last_fired      = None
 
@@ -408,7 +411,6 @@ def run_inference(args):
                 current_confidence = 1.0
                 probs_np           = np.zeros(num_classes, dtype=np.float32)
                 probs_np[void_index] = 1.0
-                consecutive_count  = 0   # never let a gate-forced null arm a trigger
             else:
                 lm_norm = _normalise_landmark_window(lm_array)       # (30, 66)
                 lm_t = torch.from_numpy(lm_norm).unsqueeze(0).to(device)   # (1,30,66)
@@ -432,14 +434,30 @@ def run_inference(args):
                 current_confidence = confidence
             current_probs      = probs_np
 
-            prediction_history.append((pred_class, confidence))
+            # Use current_pred, not pred_class: the hand-presence gate above
+            # sets only current_pred, so referring to pred_class here crashed
+            # with UnboundLocalError the moment no hand was in frame.
+            prediction_history.append((current_pred, current_confidence))
 
-            # ── Gesture firing logic ──────────────────────────────────────
-            if cooldown_frames == 0 and len(prediction_history) == consec_required:
+            # ── Gesture firing: edge-triggered ────────────────────────────
+            # Fire once on the transition into a gesture, then require a
+            # return to `null` before anything can fire again.
+            #
+            # Level-triggering was the bug you saw. After firing, only
+            # prediction_history was cleared — the 30-frame landmark buffer
+            # still held the swipe, so once the cooldown expired the same
+            # motion was still sitting in the window and fired a second time,
+            # and a third. Clearing the buffer discards the movement that
+            # already fired; `armed` then blocks anything further until the
+            # scene actually returns to null.
+            if current_pred == void_index:
+                armed = True                 # back to rest: ready for the next gesture
+
+            if cooldown_frames == 0 and armed and len(prediction_history) == consec_required:
                 preds       = [p for p, _ in prediction_history]
                 confs       = [c for _, c in prediction_history]
                 all_agree   = len(set(preds)) == 1
-                not_void    = preds[0] != classes.index('null') if 'null' in classes else preds[0] != 4
+                not_void    = preds[0] != void_index
                 high_conf   = min(confs) >= conf_threshold
 
                 if all_agree and not_void and high_conf:
@@ -448,6 +466,10 @@ def run_inference(args):
                     last_fired      = class_name
                     cooldown_frames = COOLDOWN
                     prediction_history.clear()
+                    buffer.clear()           # the motion that fired must not fire again
+                    armed = False            # stay silent until `null` is seen
+                    current_pred = void_index
+                    current_confidence = 1.0
 
         # ── Decrement cooldown ────────────────────────────────────────────
         if cooldown_frames > 0:
