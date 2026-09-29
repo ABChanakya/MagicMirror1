@@ -4,10 +4,8 @@ Logs/
 UserSettings/
 obj/
 Build/
-BatchOutput/
+# Rendered frame folders are regenerable (BatchDatasetGenerator); keep only mp4s + manifest
+BatchOutput/*/
 *.csproj
 *.slnx
 .vscode/
-# Large third-party character FBXs/textures; keep locally, not in git
-Assets/Characters/
-Assets/Characters.meta
