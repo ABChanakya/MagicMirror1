@@ -1,0 +1,13 @@
+Library/
+Temp/
+Logs/
+UserSettings/
+obj/
+Build/
+BatchOutput/
+*.csproj
+*.slnx
+.vscode/
+# Large third-party character FBXs/textures; keep locally, not in git
+Assets/Characters/
+Assets/Characters.meta
