@@ -9,3 +9,28 @@ BatchOutput/*/
 *.csproj
 *.slnx
 .vscode/
+
+# ---- Dataset environments (see README.md) ----
+# Review renders / captures: regenerable, several GB
+EnvTests/
+# Unity AI Assistant scratch
+Assets/Editor/Assistant*/
+# Asset Store packs: licence does not allow redistributing the files. Re-import them via Package Manager.
+# Their GUIDs are stable, so scenes/prefabs keep working once re-imported.
+/Assets/Furniture Mega Pack/
+/Assets/Furniture Mega Pack.meta
+/Assets/nappin/
+/Assets/nappin.meta
+/Assets/Office Room Furniture/
+/Assets/Office Room Furniture.meta
+# Poly Haven (CC0) downloads: ~2 GB. Re-download with tools/download_polyhaven.py.
+# Only the .meta files are kept, which pins the GUIDs the scenes reference.
+/Assets/Environments/PolyHaven/**/*
+!/Assets/Environments/PolyHaven/**/
+!/Assets/Environments/PolyHaven/**/*.meta
+# ... but keep the small materials/textures that our helper generated (cut-out leaf materials)
+!/Assets/Environments/PolyHaven/**/*_urp.mat
+!/Assets/Environments/PolyHaven/**/*_rgba_1k.png
+/Assets/Environments/PolyHavenTex/**/*
+!/Assets/Environments/PolyHavenTex/**/
+!/Assets/Environments/PolyHavenTex/**/*.meta

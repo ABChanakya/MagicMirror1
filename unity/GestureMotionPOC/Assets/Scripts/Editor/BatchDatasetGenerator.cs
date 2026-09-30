@@ -31,9 +31,10 @@ public class BatchDatasetGenerator : EditorWindow
     public int renderHeight = 720;
 
     // Camera rig: mounted ~2.5m up, close, angled down at the character.
-    public float cameraHeight = 2.5f;
-    public float cameraForwardOffset = 1.6f;
-    public float cameraTargetHeight = 1.3f;
+    public float cameraHeight = RigSettings.CameraHeight;
+    public float cameraForwardOffset = RigSettings.CameraForwardOffset;
+    public float cameraFieldOfView = RigSettings.FieldOfView;
+    public float cameraTargetHeight = RigSettings.TargetHeight;
 
     public string outputFolderName = "BatchOutput";
 
@@ -113,6 +114,8 @@ public class BatchDatasetGenerator : EditorWindow
 
         GameObject camGO = new GameObject("__BatchRenderCamera");
         Camera cam = camGO.AddComponent<Camera>();
+        cam.fieldOfView = cameraFieldOfView;
+        cam.nearClipPlane = RigSettings.NearClip;
         RenderTexture rt = new RenderTexture(renderWidth, renderHeight, 24);
         cam.targetTexture = rt;
         Texture2D tex = new Texture2D(renderWidth, renderHeight, TextureFormat.RGB24, false);
