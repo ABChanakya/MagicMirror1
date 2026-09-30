@@ -1,36 +1,27 @@
-Subject: Update — motion-transfer model quality issue, pausing large-scale generation
+Subject: Update — KiMoDo synthetic data is measurably helping
 
-Hi Professor [NAME],
+Hi Mr. Kromer,
 
-Quick update on the synthetic data generation part of the gesture project.
+Quick update: I tested the models you suggested (LTX-2.5 IC-LoRA and KiMoDo).
+The video/frame-based approaches — video-to-video, image-to-video, and
+frame-by-frame image-to-image — all plateaued around 25-30% on my automated
+pose validator, and the visual quality wasn't usable even on the ones that
+passed.
 
-**Context:** to break an appearance-shortcut problem we found earlier (the
-video model was learning to recognize the recording session/room instead of
-the actual hand gesture — 22.9% balanced accuracy, below chance), I've been
-generating synthetic training clips with Wan2.2-Animate: take a real recorded
-gesture clip, swap in a different person's appearance and background, keep
-the hand motion. The idea is to decorrelate appearance from label so the
-model is forced to learn the actual motion.
+KiMoDo is different: it generates 3D motion directly rather than video, so I
+can skip rendering entirely and train straight on the motion data. After I
+found and fixed a bug in my own validator's left/right scoring, generated
+clips hit a 65% pass rate. I merged a first batch of validated synthetic
+clips into training and re-tested on a held-out recording session (never
+seen during training): balanced accuracy went from 61.5% to 66.2%, with the
+weakest class (swipe-right) improving the most. I'm scaling up generation
+now to see how far this trend goes.
 
-**The issue:** I built an automated validator that checks each generated clip
-for the correct pose and direction (rather than relying on eyeballing), and
-across a real sample of 911 generated clips, only 25% actually reproduce the
-correct motion — the rest either barely move or go the wrong direction
-(swipe_right is especially unreliable). I confirmed this isn't a resolution
-or GPU-memory issue (tested at several resolutions on the university's H100
-nodes with confirmed correct pose tracking on the clips that do pass) — it's
-a genuine limitation of this specific model's motion fidelity.
-
-**What I'm doing about it:** rather than run a much larger (~15,000-clip,
-~29-hour) generation job on a pipeline with a known 75% failure rate, I'm
-pausing that and evaluating alternative models built specifically for
-pose-guided human animation (e.g., StableAnimator++, MimicMotion), which are
-explicitly designed to solve the pose-alignment problem I'm seeing. I wanted
-to flag this before committing more compute time on the cluster, in case you
-have a preference on approach or want to discuss before I continue.
-
-Happy to walk through the validator results or the generated samples if
-useful.
+MediaPipe's real-time landmark extraction already works well, so the open
+question is purely whether KiMoDo gives me enough synthetic variety. If it
+plateaus below what I need, building a Unity environment to render the
+motions in varied settings is my fallback — but I'd rather not add that
+complexity unless the numbers say I need to.
 
 Best,
 Chanakya

@@ -48,3 +48,11 @@ gesture_system/experiment_results.json
 gesture_system/sweep_results.json
 gesture_system/training_run.log
 gesture_system/experiments.log
+
+# KiMoDo-generated motion clips, constraint targets, and merged synthetic
+# training datasets — all regenerable via the kimodo_*.py / merge_synthetic.py
+# scripts, 250MB+ and growing with every batch, keep out of git
+gesture_system/*.npz
+gesture_system/exp_targets/
+gesture_system/data/landmarks_holistic_plus_synth*.npz
+gesture_system/bvh_export/

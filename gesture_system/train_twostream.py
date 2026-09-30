@@ -49,17 +49,30 @@ def split_by_session(clip_ids, y, classes, test_session='20260816'):
     appearance was never seen in training, so only transferable signal helps.
     20260816 is the default because it is the one session containing all three
     classes.
+
+    Synthetic clip_ids (no YYYYMMDD-HHMMSS timestamp, e.g. from KiMoDo) read
+    as session 'unknown' here. They're kept entirely out of validation --
+    checkpoint selection has to stay anchored to real held-out-session
+    generalisation, not to how well a checkpoint fits synthetic examples.
+    Mixing synthetic into val let val-balanced hit 99% while the real test
+    session collapsed to 55% (swipe_right recall 16%): the model was being
+    selected for fitting synthetic-data quirks, not real motion -- the same
+    shortcut-learning failure this split exists to catch, one level up.
+    Synthetic clips still count fully in training.
     """
     import re
     sess = np.array([re.search(r'(\d{8})-\d{6}', c).group(1)
                      if re.search(r'(\d{8})-\d{6}', c) else 'unknown'
                      for c in clip_ids])
     te = np.where(sess == test_session)[0]
-    rest = np.where(sess != test_session)[0]
+    real_rest = np.where((sess != test_session) & (sess != 'unknown'))[0]
+    synth = np.where(sess == 'unknown')[0]
     rng = np.random.RandomState(0)
-    rng.shuffle(rest)
-    n_val = max(1, int(len(rest) * 0.12))
-    return rest[n_val:], rest[:n_val], te
+    rng.shuffle(real_rest)
+    n_val = max(1, int(len(real_rest) * 0.12))
+    va = real_rest[:n_val]
+    tr = np.concatenate([real_rest[n_val:], synth])
+    return tr, va, te
 
 
 def split_by_clip(clip_ids, y, seed=42, val_frac=0.15, test_frac=0.15):
